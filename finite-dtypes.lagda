@@ -13,37 +13,36 @@
 
 \maketitle
 
-% Some Agda preliminaries
-
+% Set up the basic definitions.
 \begin{comment}
 \begin{code}
-
-_\\ : forall {A : Set} -> A -> A
-x \\ = x
-
-&_ : forall {A : Set} -> A -> A
-& x = x
-
-data /bool/ : Set where
-  /true/ : /bool/
-  /false/ : /bool/
-
+{-# OPTIONS --type-in-type #-} -- WARNING, CLAXONS!
+open import prelude
 \end{code}
 \end{comment}
 
-\section{Introduction}
+\section{Hacking around with Agda}
 
-Just checking that negation still works!
 \begin{comment}
 \begin{code}
-/not/ : /bool/ -> /bool/
+-- Types of things defined in this section.
+_/times/_ : Set -> Set -> Set
+_/?/ : Set -> Set
+/some/ : {A : Set} -> A -> A /?/
+/none/ : {A : Set} -> A /?/
 \end{code}
 \end{comment}
-\begin{code}
-/not/(/true/)  = & /false/ \\
-/not/(/false/) = & /true/
-\end{code}
 
+The definition of independent product in terms of dependent product:
+\begin{code}
+(A /times/ B) = /Pi/ x /in/ A /cdot/ B
+\end{code}
+The definition of options in terms of dependent products:
+\begin{code}
+(A /?/) = & (/Pi/ b /in/ /bool/ /cdot/ (/IF/ b /THEN/ A /ELSE/ /unit/)) \\
+/some/(x) = & (/1/ , x) \\
+/none/ = & (/0/ , /epsilon/)
+\end{code}
 
 \end{document}
 

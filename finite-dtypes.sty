@@ -1,8 +1,16 @@
 \catcode`\/=13
-\def/#1/{\mathsf{#1}}
-
-\newenvironment{code}{
-  \[\begin{array}{r@{\,}l}
-}{
-  \end{array}\]
+\def/#1/{%
+  \expandafter\ifx\csname#1\endcsname\relax
+    \mathsf{#1}%
+  \else
+    \csname#1\endcsname
+  \fi
 }
+
+\def\IF{\mathsf{if}\,}
+\def\THEN{\,\mathsf{then}\,}
+\def\ELSE{\,\mathsf{else}\,}
+
+\newenvironment{code}
+  {\[\begin{array}{r@{\,}l}\ignorespaces}
+  {\end{array}\]\ignorespacesafterend}
