@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[sigconf]{acmart}
 
 \usepackage{amsfonts}
 \usepackage{ucs}
@@ -10,7 +10,22 @@
 \begin{document}
 
 \title{Finite Dependent Types}
+\subtitle{Fancy Types For Systems Programs}
 \author{Alan Jeffrey}
+\orcid{0000-0001-6342-0318}
+\affiliation{Mozilla Research}
+\email{ajeffrey@mozilla.com}
+\acmConference[OBT 2018]{Off The Beaten Track}{January 2018}{Los Angeles, CA, USA}
+\acmDOI{}
+\acmISBN{}
+\acmYear{2018}
+\copyrightyear{%
+  \includegraphics[height=2ex]{cc-by-88x31.png}
+  \url{https://creativecommons.org/licenses/by/4.0/}\\
+  This work is licensed under a Creative Commons Attribution 4.0 International License%
+}
+\setcopyright{none}
+\settopmatter{printacmref=false}
 
 \maketitle
 
@@ -27,8 +42,7 @@ open import prelude -- POSTULATES LIVE HERE!
 Applications such as web browsers often have issues of scale
 and complexity of the code base. For example, the next-generation
 Servo~/cite{servo.org} web engine contains more than a quarter of a
-million lines of code (counted with \verb|loc|~\cite{loc}):
-\begin{tiny}
+million lines of code (counted with \texttt{loc}~\cite{loc}):
 \begin{verbatim}
 $ loc servo/components/
 --------------------------------------------------------------------------------
@@ -40,17 +54,12 @@ $ loc servo/components/
  Total                  961       353834        33406        37472       282956
 --------------------------------------------------------------------------------
 \end{verbatim}
-\end{tiny}
 That is just the Servo codebase itself. Servo also makes use of the Cargo
 software ecosystem, and has more than 200 transitive dependencies with
 more than a million lines of Rust code, and nine million lines of code
 in all languages:
-\begin{tiny}
 \begin{verbatim}
 $ loc servo/.cargo/
---------------------------------------------------------------------------------
- Language             Files        Lines        Blank      Comment         Code
---------------------------------------------------------------------------------
 ...
  Rust                  2274      1541124        65910       111065      1364149
 ...
@@ -58,51 +67,38 @@ $ loc servo/.cargo/
  Total                58295     11784796      1274681      1179475      9330640
 --------------------------------------------------------------------------------
 \end{verbatim}
-\end{tiny}
 Building Servo generates even more source code:
-\begin{tiny}
 \begin{verbatim}
 $ loc servo/target/
---------------------------------------------------------------------------------
- Language             Files        Lines        Blank      Comment         Code
---------------------------------------------------------------------------------
+...
  Rust                   611       893414        74200        13194       806020
 ...
 --------------------------------------------------------------------------------
  Total                 3901      1660507       174703       107729      1378075
 --------------------------------------------------------------------------------
 \end{verbatim}
-\end{tiny}
-Much of this generated code comes from the \verb|script| component,
+Much of this generated code comes from the \texttt{script} component,
 which generates Rust bindings for the WebIDL~\cite{webidl}
 interfaces for the HTML JavaScript APIs~\cite{whatwg}.
-\begin{tiny}
 \begin{verbatim}
 $ loc servo/target/debug/build/script-*/
---------------------------------------------------------------------------------
- Language             Files        Lines        Blank      Comment         Code
---------------------------------------------------------------------------------
+...
  Rust                   579       781977        63352         6424       712201
 ...
 --------------------------------------------------------------------------------
  Total                  592       800055        66936         9849       723270
 --------------------------------------------------------------------------------
 \end{verbatim}
-\end{tiny}
 The code generator itself is twenty thousand lines of Python script:
-\begin{tiny}
 \begin{verbatim}
 $ loc servo/components/script/dom/bindings/codegen/
---------------------------------------------------------------------------------
- Language             Files        Lines        Blank      Comment         Code
---------------------------------------------------------------------------------
+...
  Python                  80        26919         3903         2112        20904
 ...
 --------------------------------------------------------------------------------
  Total                   81        26932         3904         2112        20916
 --------------------------------------------------------------------------------
 \end{verbatim}
-\end{tiny}
 
 \section{Hacking around with Agda}
 

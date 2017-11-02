@@ -22,3 +22,6 @@
 \newenvironment{code}
   {\activeSlash\[\begin{array}{r@{\,}l@{\,}l}\ignorespaces}
   {\end{array}\]\ignorespacesafterend}
+
+\let\old@verbatim@font=\verbatim@font
+\def\verbatim@font{\fontsize{6}{8}\old@verbatim@font}
