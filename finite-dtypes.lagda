@@ -30,14 +30,6 @@
 
 \maketitle
 
-% Set up the basic definitions.
-\begin{comment}
-\begin{code}
-{-# OPTIONS --type-in-type #-} -- WARNING, CLAXONS!
-open import prelude -- POSTULATES LIVE HERE!
-\end{code}
-\end{comment}
-
 \section{Introduction}
 
 Applications such as web browsers often have issues of scale
@@ -146,43 +138,112 @@ is possibly unsound, and its encoding in Agda uses $\keyword{Set} \in \keyword{S
 which is dangerous. \S\ref{hacking} is written in Literate Agda, and has
 been typechecked with Agda~v2.4.2.5. The source is available~\cite{self}.
 
-\section{Hacking around with Agda}
+\section{Simple finite dependent types}
 \label{hacking}
 
-For this paper, we will go old-school, and assume a word size of eight bits.
-Binary is encoded little-endian:
-\begin{code}
-/WORDSIZE/ = & [ /0/ , /0/ , /0/ , /1/ , /0/ , /0/ , /0/ , /0/ ] \\
-/word/ = & /bits/ (/WORDSIZE/)
-\end{code}
-This appears to be spookily cyclic!
-\begin{code}
-%WORDSIZE =
-  /WORDSIZE/ &/in/ /word/ \\
-%word =
-  /word/ &/in/ /FSet/(/WORDSIZE/)
-\end{code}
-% Types of things defined in this section.
+% Set up the basic definitions.
 \begin{comment}
 \begin{code}
-_/times/_ : ∀ {k} {m n : 𝔹 ↑ k} → (FSet m) -> (FSet n) -> (FSet(m + n))
+{-# OPTIONS --type-in-type #-} -- WARNING, CLAXONS!
+open import prelude -- POSTULATES LIVE HERE!
+\end{code}
+\end{comment}
+
+% The Agda types of things defined in this section.
+\begin{comment}
+\begin{code}
+infixr 5 _/times/_ _/rightarrow/_ _/oplus/_
+_/times/_ : ∀ {j k} {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} → (FSet m) -> (FSet n) -> (FSet(m + n))
 _/rightarrow/_ : ∀ {j k} {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} → (A : FSet m) -> (FSet n) -> (FSet (n /ll/ m))
 _/oplus/_ : ∀ {k} {m : 𝔹 ↑ k} → (FSet m) → (FSet m) → (FSet (/one/ + m))
 /inl/ : ∀ {k} → {n : 𝔹 ↑ k} → {A B : FSet(n)} → Carrier(/sum/ x /in/ A /cdot/ (A /oplus/ B))
 /inr/ : ∀ {k} → {n : 𝔹 ↑ k} → {A B : FSet(n)} → Carrier(/sum/ y /in/ B /cdot/ (A /oplus/ B))
 _/?/ : ∀ {k} {m : 𝔹 ↑ k} → (FSet m) → (FSet (/one/ + m))
 /some/ : ∀ {k} → {n : 𝔹 ↑ k} → {A : FSet(n)} → Carrier(/sum/ x /in/ A /cdot/ (A /?/))
-/none/ : ∀ {k} → {n : 𝔹 ↑ k} → {A : FSet(n)} → Carrier(A /?/)
+/none/ : ∀ {k} → {n : 𝔹 ↑ k} → (A : FSet(n)) → Carrier(A /?/)
 \end{code}
 \end{comment}
-The definition of independent pairs in terms of dependent pairs:
+
+\begin{figure}[t]
 \begin{code}
-(A /times/ B) = /prod/ x /in/ A /cdot/ B
+(A /times/ B) = & (/prod/ x /in/ A /cdot/ B) \\
+(A /rightarrow/ B) = & (/sum/ x /in/ A /cdot/ B) \\ \\
+%nothing =
+  /nothing/ &/in/ /FSet/(/zero/) \\
+%unit =
+  /unit/ &/in/ /FSet/(/zero/) \\
+%bool =
+  /bool/ &/in/ /FSet/(/one/) \\
+%prod = \ j k (m : 𝔹 ↑ j) (n : 𝔹 ↑ k) ->
+  (/prod/ x /in/ A /cdot/ B(x)) &/in/ /FSet/(m + n) \\
+  &/WHEN/ B /in/ (A /rightarrow/ /FSet/(n))
+  /AND/ A /in/ /FSet/(m) \\
+%sum = \ j k (m : 𝔹 ↑ j) (n : 𝔹 ↑ k) ->
+  (/sum/ x /in/ A /cdot/ B(x)) &/in/ /FSet/ (n /ll/ m) \\
+  &/WHEN/ B /in/ (A /rightarrow/ /FSet/(n))
+  /AND/ A /in/ /FSet/(m) \\
+%FSet = \ k (n : 𝔹 ↑ k) ->
+  /FSet/(n) &/in/ /FSet/(/one/ + n)
 \end{code}
-The definition of independent functions in terms of dependent functions:
+\caption{Type rules for built-in types}
+\label{built-in-types}
+\end{figure}
+
+In this presentation of finite dependent types, we take binary
+arithmetic (with constants, addition and shifting) as a primitive,
+encoded little-endian. There is a type $\keyword{bits}(k)$ for
+bitstrings of length $k$. For example, we can go old-school and
+assume a word size of eight bits:
 \begin{code}
-(A /rightarrow/ B) = /sum/ x /in/ A /cdot/ B
+/WORDSIZE/ = & [ /0/ , /0/ , /0/ , /1/ , /0/ , /0/ , /0/ , /0/ ] \\
+/word/ = & /bits/ (/WORDSIZE/)
 \end{code}
+This is spookily cyclic:
+\begin{code}
+%WORDSIZE =
+  /WORDSIZE/ &/in/ /word/ \\
+%word =
+  /word/ &/in/ /FSet/(/WORDSIZE/)
+\end{code}
+We can break this cycle by expanding out the definition of $\keyword{bits}$:
+\begin{code}
+%WORDSIZE-expanded =
+  /WORDSIZE/ &/in/ (/bool/ /times/ /bool/ /times/ /bool/ /times/ /bool/ \\&\indent
+                      /times/ /bool/ /times/ /bool/ /times/ /bool/ /times/ /bool/ /times/ /unit/) \\
+             &/in/ (/FSet/ ([ /0/ , /0/ , /0/ , /1/ ])) \\
+%four =
+  ([ /0/ , /0/ , /0/ , /1/ ]) &/in/ (/bool/ /times/ /bool/ /times/ /bool/ /times/ /bool/ /times/ /unit/) \\
+             &/in/ /FSet/ ([ /0/ , /0/ , /1/ ]) \\           
+%three =
+  ([ /0/ , /0/ , /1/ ]) &/in/ (/bool/ /times/ /bool/ /times/ /bool/ /times/ /unit/) \\
+             &/in/ /FSet/ ([ /1/ , /1/ ]) \\           
+%two =
+  ([ /0/ , /1/ ]) &/in/ (/bool/ /times/ /bool/ /times/ /unit/) \\
+             &/in/ /FSet/ ([ /0/ , /1/ ])
+\end{code}
+The $\keyword{bits}$ type is not primitive, since it can be defined
+by induction:
+\begin{code}
+/mybits/ = /indn/(/FSet/) (/unitp/) (/lambda/ n /cdot/ /lambda/ A /cdot/ (/bool/ /times/ A))
+\end{code}
+For example:
+\begin{code}
+%WORDSIZE-mybits =
+  /WORDSIZE/ &/in/ /mybits/(/WORDSIZE/)
+\end{code}
+At this point, we have seen all of the gadgets in this simple finite
+dependent type system. The types are summarized in
+Figure~\ref{built-in-types}.
+
+\sloppy
+\bibliographystyle{plain}
+\bibliography{finite-dtypes}
+
+\end{document}
+
+
+
+
 The definition of tagged union in terms of dependent pairs:
 \begin{code}
 (A /oplus/ B) = & (/prod/ b /in/ /bool/ /cdot/ /IF/ b /THEN/ A /ELSE/ B) \\
@@ -193,48 +254,23 @@ The definition of options in terms of tagged unions:
 \begin{code}
 (A /?/) = & (A /oplus/ /bits/(/sizeof/(A))) \\
 /some/(x) = & /inl/(x) \\
-/none/ = & /inr/(/padding/)
+/none/(A) = & /inr/(/zero/[ /sizeof/(A) ])
 \end{code}
 Derived typing rules:
 \begin{code}
-%times = forall k -> (m n : 𝔹 ↑ succ k) ->
+%times = \ k (m n : 𝔹 ↑ k) ->
   (A /times/ B) &/in/ /FSet/(m + n)
   &/WHEN/ A /in/ /FSet/(m)
   /AND/ B /in/ /FSet/(n) \\
-%rightarrow = forall j k -> (m : 𝔹 ↑ succ j) -> (n : 𝔹 ↑ succ k) ->
+%rightarrow = \ j k (m : 𝔹 ↑ j) (n : 𝔹 ↑ k) ->
   (A /rightarrow/ B) &/in/ /FSet/(n /ll/ m)
   &/WHEN/ A /in/ /FSet/(m)
   /AND/ B /in/ /FSet/(n) \\
-%oplus = forall k -> (n : 𝔹 ↑ k) ->
+%oplus = \ k (n : 𝔹 ↑ k) ->
   (A /oplus/ B) &/in/ /FSet/(/one/ + n)
   &/WHEN/ A /in/ /FSet/(n)
   /AND/ B /in/ /FSet/(n) \\
-%? = forall k -> (n : 𝔹 ↑ k) ->
+%? = \ k (n : 𝔹 ↑ k) ->
   (A /?/) &/in/ /FSet/(/one/ + n)
   &/WHEN/ A /in/ /FSet/(n)
 \end{code}
-Built-in types:
-\begin{code}
-%unit =
-  /unit/ &/in/ /FSet/(/zero/) \\
-%bool = 
-  /bool/ &/in/ /FSet/(/one/) \\
-%prod = forall j k -> (m : 𝔹 ↑ j) -> (n : 𝔹 ↑ k) ->
-  (/prod/ x /in/ A /cdot/ B(x)) &/in/ /FSet/(m + n)
-  &/WHEN/ B /in/ (A /rightarrow/ /FSet/(n))
-  /AND/ A /in/ /FSet/(m) \\
-%sum = forall j k -> (m : 𝔹 ↑ j) -> (n : 𝔹 ↑ k) ->
-  (/sum/ x /in/ A /cdot/ B(x)) &/in/ /FSet/ (n /ll/ m)
-  &/WHEN/ B /in/ (A /rightarrow/ /FSet/(n))
-  /AND/ A /in/ /FSet/(m) \\
-%FSet = forall k -> (n : 𝔹 ↑ k) ->
-  /FSet/(n) &/in/ /FSet/(/one/ + n)
-\end{code}
-
-\sloppy
-\bibliographystyle{plain}
-\bibliography{finite-dtypes}
-
-\end{document}
-
-

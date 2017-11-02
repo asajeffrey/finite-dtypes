@@ -1,15 +1,17 @@
 {-# OPTIONS --type-in-type #-} -- DANGER!
 postulate HOLE : {A : Set} -> A -- MORE DANGER!
 
+infixr 6 _\\
+infixr 6 _\\&\indent
+infixl 2 &_
+
 infixr 3 [_
 infixr 5 _,_
 infixr 7 _]
 
-infixr 5 _/xor/_
-infixr 2 typeof
-infixr 2 dtypeof
-infixr 2 &_
-infixr 2 _\\
+infixr 5 _/xor/_ _/land/_ _/lor/_
+infixr 5 /Sigma/ /Pi/ lambda
+infixr 2 id
 infixl 1 WHEN
 infixl 1 AND
 
@@ -65,12 +67,26 @@ _↑_ : Set → ℕ → Set
 
 -- Binary arithmetic
 
-/padding/ : ∀ {k} → (𝔹 ↑ k)
-/padding/ {zero}   = /zero/
-/padding/ {succ k} = (/0/ , /padding/)
+indn : ∀ {k} {A : Set} → A → (A → A) → (𝔹 ↑ k) → A
+indn {zero}   e f n = e
+indn {succ k} e f (/0/ , n) = indn e (λ x → f (f x)) n
+indn {succ k} e f (/1/ , n) = f (indn e (λ x → f (f x)) n)
+
+unary : ∀ {k} → (𝔹 ↑ k) → ℕ
+unary = indn zero succ
+
+/zerop/ : ∀ {k} → (𝔹 ↑ k)
+/zerop/ {zero}   = /zero/
+/zerop/ {succ n} = (/0/ , /zerop/)
+
+/zero/[_] :  ∀ {k} → (n : 𝔹 ↑ k) → (𝔹 ↑ unary n)
+/zero/[ n ] = /zerop/
+
+/onep/ : ∀ {k} → (𝔹 ↑ succ k)
+/onep/ = (/1/ , /zerop/)
 
 /one/ : (𝔹 ↑ one)
-/one/ = (/1/ , /zero/)
+/one/ = /onep/
 
 /IMPOSSIBLE/ : {A : Set} → {{p : ⊥}} → A
 /IMPOSSIBLE/ {A} {{()}}
@@ -128,25 +144,17 @@ _+_ = /addc/ /0/
 /succ/ : ∀ {k} → (n : 𝔹 ↑ k) → (𝔹 ↑ addclen /1/ /zero/ n)
 /succ/ = /addc/ /1/ /zero/
 
-indn : ∀ {k} {A : Set} → A → (A → A) → (𝔹 ↑ k) → A
-indn {zero}   e f n = e
-indn {succ k} e f (/0/ , n) = indn e (λ x → f (f x)) n
-indn {succ k} e f (/1/ , n) = f (indn e (λ x → f (f x)) n)
-
-unary : ∀ {k} → (𝔹 ↑ k) → ℕ
-unary = indn zero succ
-
-dindn : {A : ∀ {k} → (𝔹 ↑ k) → Set} → (∀ {k} → A {k} /padding/) → (∀ {k} (n : 𝔹 ↑ k) → A(n) → A(/succ/(n))) → ∀ {k} → (n : 𝔹 ↑ k) → A(n)
-dindn {A} e f {zero} n = e
-dindn {A} e f {succ k} (/0/ , n) = dindn {λ {j} m → A (/0/ , m)} e (λ {j} m x → f (/1/ , m) (f (/0/ , m) x)) n
-dindn {A} e f {succ k} (/1/ , n) = f (/0/ , n) (dindn {λ {j} m → A (/0/ , m)} e (λ {j} m x → f (/1/ , m) (f (/0/ , m) x)) n)
+dindn : (A : ∀ {k} → (𝔹 ↑ k) → Set) → (∀ {k} → A(/zerop/ {k})) → (∀ {k} (n : 𝔹 ↑ k) → A(n) → A(/succ/(n))) → ∀ {k} → (n : 𝔹 ↑ k) → A(n)
+dindn A e f {zero} n = e
+dindn A e f {succ k} (/0/ , n) = dindn (λ {j} m → A (/0/ , m)) e (λ {j} m x → f (/1/ , m) (f (/0/ , m) x)) n
+dindn A e f {succ k} (/1/ , n) = f (/0/ , n) (dindn (λ {j} m → A (/0/ , m)) e (λ {j} m x → f (/1/ , m) (f (/0/ , m) x)) n)
 
 _++_ : ∀ {A j k} → (A ↑ j) → (A ↑ k) → (A ↑ (j +n k))
 _++_ {A} {zero}   xs       ys = ys
 _++_ {A} {succ j} (x , xs) ys = (x , xs ++ ys)
 
 _/ll/_ : ∀ {j k} → (𝔹 ↑ j) → (n : 𝔹 ↑ k) → (𝔹 ↑ (j +n unary n))
-(m /ll/ n) = (m ++ /padding/)
+(m /ll/ n) = (m ++ /zerop/)
 
 /truncate?/ : ∀ {k} → (n : 𝔹 ↑ succ(k)) → 𝔹
 /truncate?/ {zero}   (/0/ , _) = /1/
@@ -174,41 +182,74 @@ open FSet public
 /FSet/ : ∀ {k} -> (n : 𝔹 ↑ k) -> FSet(/one/ + n)
 /FSet/ n = record { Carrier = FSet(n); encodable = HOLE }
 
-/empty/ : FSet(/zero/)
-/empty/ = record { Carrier = ⊥; encodable = HOLE }
+/nothingp/ : ∀ {k} → FSet(/zerop/ {k})
+/nothingp/ = record { Carrier = ⊥; encodable = HOLE }
+
+/nothing/[_] : ∀ {k} (n : 𝔹 ↑ k) → FSet(/zerop/ {unary n})
+/nothing/[ n ] = /nothingp/
+
+/nothing/ : FSet(/zero/)
+/nothing/ = /nothingp/
+
+/bool/[_] : ∀ {k} (n : 𝔹 ↑ k) → FSet(/one/ + n)
+/bool/[ n ] = record { Carrier = 𝔹; encodable = HOLE }
 
 /bool/ : FSet(/one/)
-/bool/ = record { Carrier = 𝔹; encodable = HOLE }
+/bool/ = /bool/[ /zero/ ]
+
+/unitp/ : ∀ {k} → FSet(/zerop/ {k})
+/unitp/ = record { Carrier = ⊤; encodable = HOLE }
+
+/unit/[_] : ∀ {k} (n : 𝔹 ↑ k) → FSet(/zero/[ n ])
+/unit/[ n ] = /unitp/
 
 /unit/ : FSet(/zero/)
-/unit/ = record { Carrier = ⊤; encodable = HOLE }
+/unit/ = /unit/[ /zero/ ]
 
 /bits/ : ∀ {k} (n : 𝔹 ↑ k) ->  FSet(n)
 /bits/ n = record { Carrier = (𝔹 ↑ unary n); encodable = HOLE }
 
-/PI/ : ∀ {j k} -> {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} -> (A : FSet(m)) -> (Carrier(A) → FSet(n)) -> FSet(m + n)
-/PI/ A B = record { Carrier = Π x ∈ (Carrier A) ∙ Carrier (B x) ; encodable = HOLE }
+/Pi/ : ∀ {j k} -> {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} -> (A : FSet(m)) -> (Carrier(A) → FSet(n)) -> FSet(m + n)
+/Pi/ A B = record { Carrier = Π x ∈ (Carrier A) ∙ Carrier (B x) ; encodable = HOLE }
 
-syntax /PI/ A (λ x → B) = /prod/ x /in/ A /cdot/ B
+syntax /Pi/ A (λ x → B) = /prod/ x /in/ A /cdot/ B
 
-/SIGMA/ : ∀ {j k} -> {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} -> (A : FSet(m)) → ((Carrier A) → FSet(n)) -> FSet(n /ll/ m)
-/SIGMA/ A B = record { Carrier = (x : Carrier A) → (Carrier (B x)) ; encodable = HOLE }
+/Sigma/ : ∀ {j k} -> {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} -> (A : FSet(m)) → ((Carrier A) → FSet(n)) -> FSet(n /ll/ m)
+/Sigma/ A B = record { Carrier = (x : Carrier A) → (Carrier (B x)) ; encodable = HOLE }
 
-syntax /SIGMA/ A (λ x → B) = /sum/ x /in/ A /cdot/ B
+syntax /Sigma/ A (λ x → B) = /sum/ x /in/ A /cdot/ B
+
+lambda : ∀ {A : Set} {B : A → Set} → (∀ x → B(x)) → (∀ x → B(x))
+lambda f = f
+
+syntax lambda (λ x → e) = /lambda/ x /cdot/ e
+
+/indn/ :
+  {h : ∀ {k} → (𝔹 ↑ k) → ℕ} →
+  {g : ∀ {k} → (n : 𝔹 ↑ k) → (𝔹 ↑ h(n))} →
+  (A : ∀ {k} → (n : 𝔹 ↑ k) → FSet(g(n))) →
+  (∀ {k} → Carrier(A(/zerop/ {k}))) →
+  (∀ {k} (n : 𝔹 ↑ k) → Carrier(A(n)) → Carrier(A(/one/ + n))) →
+  ∀ {k} → (n : 𝔹 ↑ k) → Carrier(A(n))
+/indn/ A e f = dindn (λ n → Carrier(A(n))) e (λ n x → g n (f n x)) where
+  g : ∀ {k} → (n : 𝔹 ↑ k) → Carrier(A(/one/ + n)) → Carrier(A(/succ/(n)))
+  g {zero}   n         x = x
+  g {succ k} (/0/ , n) x = x
+  g {succ k} (/1/ , n) x = x
 
 -- Stuff to help with LaTeX layout
+
+id : ∀ {k} → {n : 𝔹 ↑ k} → (A : FSet(n)) → (Carrier A) → (Carrier A)
+id A x = x
 
 typeof : ∀ {k} → {n : 𝔹 ↑ k} → (A : FSet(n)) → (Carrier A) → Set
 typeof A x = Carrier A
 
-dtypeof : ∀ {k} → {n : 𝔹 ↑ k} → (A : FSet(n)) → (Carrier A → Set) → Set
-dtypeof A F = ∀ x → F x
+WHEN : ∀ {k} → {n : 𝔹 ↑ k} → (A : FSet(n)) → {B : Carrier A → Set} → (∀ x → B(x)) → (∀ x → B(x))
+WHEN A F = F
 
-WHEN : ∀ {k} → {n : 𝔹 ↑ k} → (A : FSet(n)) → (Carrier A → Set) → Set
-WHEN A F = ∀ x → F x
-
-AND : ∀ {k} → {n : 𝔹 ↑ k} → (A : FSet(n)) → (Carrier A → Set) → Set
-AND A F = ∀ x → F x
+AND : ∀ {k} → {n : 𝔹 ↑ k} → (A : FSet(n)) → {B : Carrier A → Set} → (∀ x → B(x)) → (∀ x → B(x))
+AND A F = F
 
 [_ : ∀ {A k} → (A ↑ k) → (A ↑ k)
 [_ x = x
@@ -219,10 +260,12 @@ _] x = (x , /zero/)
 _\\ : forall {A : Set} -> A -> A
 x \\ = x
 
+_\\&\indent : forall {A : Set} -> A -> A
+x \\&\indent = x
+
 &_ : forall {A : Set} -> A -> A
 & x = x
 
-syntax typeof A x = x &/in/ A
-syntax dtypeof A (λ x → B) = x /in/ A /implies/ B
+syntax id A x = x &/in/ A
 syntax WHEN A (λ x → B) = B &/WHEN/ x /in/ A
 syntax AND A (λ x → B) = B /AND/ x /in/ A
