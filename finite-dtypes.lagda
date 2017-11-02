@@ -100,6 +100,23 @@ $ loc servo/components/script/dom/bindings/codegen/
  Total                   81        26932         3904         2112        20916
 --------------------------------------------------------------------------------
 \end{verbatim}
+There should be a better way to do metaprogramming than Python scripts
+writing source files!
+
+Fortunately, metaprogramming is a well-explored area, 
+notably in the Racket~\cite{racket-lang.org} programming
+language's \texttt{\#lang} declarations.
+Much metaprogramming does not provide static guarantees,
+since the type system of the metaprogramming language
+is not usually expressive enough to encode object
+language types, especially when those types are based on
+data (such as Web IDL specifications).
+
+A notable exception is the use of \emph{dependent types}
+(as implemented in, for example, Coq~\cite{coq}, Agda~\cite{agda}
+or Idris~\cite{idris}). Dependent types have already been proposed
+for low-level programming~\cite{CHAGN07}, generic programming~\cite{AM03}
+and metaprogramming~\cite{Chl10}.
 
 \section{Hacking around with Agda}
 
