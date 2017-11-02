@@ -1,5 +1,6 @@
-\catcode`\/=13
-\def/#1/{%
+{\catcode`\/=13\gdef\activeSlash{\catcode`\/=13\def/##1/{\keyword{##1}}}}
+
+\def\keyword#1{%
   \expandafter\ifx\csname#1\endcsname\relax
     \mathsf{#1}%
   \else
@@ -19,5 +20,5 @@
 \def\succ{\mathsf{succ}}
 
 \newenvironment{code}
-  {\[\begin{array}{r@{\,}l@{\,}l}\ignorespaces}
+  {\activeSlash\[\begin{array}{r@{\,}l@{\,}l}\ignorespaces}
   {\end{array}\]\ignorespacesafterend}

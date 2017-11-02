@@ -1,5 +1,7 @@
 *.agdai
 *.aux
+*.bbl
+*.blg
 *.dvi
 *.log
 *.pdf
