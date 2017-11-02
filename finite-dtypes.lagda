@@ -41,7 +41,7 @@ open import prelude -- POSTULATES LIVE HERE!
 
 Applications such as web browsers often have issues of scale
 and complexity of the code base. For example, the next-generation
-Servo~/cite{servo.org} web engine contains more than a quarter of a
+Servo~\cite{servo.org} web engine contains more than a quarter of a
 million lines of code (counted with \texttt{loc}~\cite{loc}):
 \begin{verbatim}
 $ loc servo/components/
@@ -54,7 +54,8 @@ $ loc servo/components/
  Total                  961       353834        33406        37472       282956
 --------------------------------------------------------------------------------
 \end{verbatim}
-That is just the Servo codebase itself. Servo also makes use of the Cargo
+That is just the Servo codebase itself. Servo also makes use of the
+Cargo~\cite{crates.io}
 software ecosystem, and has more than 200 transitive dependencies with
 more than a million lines of Rust code, and nine million lines of code
 in all languages:
