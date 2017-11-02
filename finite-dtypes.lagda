@@ -15,17 +15,18 @@
 \orcid{0000-0001-6342-0318}
 \affiliation{Mozilla Research}
 \email{ajeffrey@mozilla.com}
-\acmConference[OBT 2018]{Off The Beaten Track}{January 2018}{Los Angeles, CA, USA}
+\acmConference{Submitted for publication}{November 2017}{}
 \acmDOI{}
 \acmISBN{}
 \acmYear{2018}
 \copyrightyear{%
-  \includegraphics[height=2ex]{cc-by-88x31.png}
+  \includegraphics[height=1.5ex]{cc-by-88x31.png}
   \url{https://creativecommons.org/licenses/by/4.0/}\\
   This work is licensed under a Creative Commons Attribution 4.0 International License%
 }
 \setcopyright{none}
 \settopmatter{printacmref=false}
+\urlstyle{tt}
 
 \maketitle
 
@@ -116,9 +117,37 @@ A notable exception is the use of \emph{dependent types}
 (as implemented in, for example, Coq~\cite{coq}, Agda~\cite{agda}
 or Idris~\cite{idris}). Dependent types have already been proposed
 for low-level programming~\cite{CHAGN07}, generic programming~\cite{AM03}
-and metaprogramming~\cite{Chl10}.
+and metaprogramming~\cite{Chl10}. Dependent types allow for
+the compile-time computation of types which depend on data,
+but still provide static guarantees such as memory safety.
+
+One feature that all of these formalisms have in common is that they support
+types with an infinite number of elements, such as lists or trees.
+The prototypical infinite types are $\mathbb{N}$ (the type of natural
+numbers) and $\keyword{Set}$ (the type of types). This is a mismatch with systems
+programs, where types are often \emph{sized} (for example in Rust,
+types are \texttt{Sized}~\cite[\S3.31]{rust-book} by default).
+In particular, systems programs are usually parameterized by the
+architectures word size, and assume that data fits into memory
+(for example that arrays are indexed by a word, not by a natural number).
+
+In this position paper, we encourage the exploration of programming
+languages in which finite types are the norm. In \S\ref{hacking} we
+present a simple system for finite types, where $\keyword{bits}(k)$
+replaces $\mathbb{N}$ and $\keyword{FSet}(k)$ replaces $\keyword{Set}$.
+In each case $k$ is the bitlength of the type, for example
+if we define $\keyword{two} = [\keyword{0},\keyword{1}]$
+and $\keyword{three} = [\keyword{1},\keyword{1}]$
+then $\keyword{two} \in \keyword{bits}(\keyword{two}) \in \keyword{FSet}(\keyword{two}) \in \keyword{FSet}(\keyword{three})$.
+
+This system is not fully developed (\emph{hey, this is a position paper!})
+in particular its use of $\keyword{FSet}(k) \in \keyword{FSet}(k+1)$
+is possibly unsound, and its encoding in Agda uses $\keyword{Set} \in \keyword{Set}$
+which is dangerous. \S\ref{hacking} is written in Literate Agda, and has
+been typechecked with Agda~v2.4.2.5. The source is available~\cite{self}.
 
 \section{Hacking around with Agda}
+\label{hacking}
 
 For this paper, we will go old-school, and assume a word size of eight bits.
 Binary is encoded little-endian:
@@ -202,6 +231,7 @@ Built-in types:
   /FSet/(n) &/in/ /FSet/(/one/ + n)
 \end{code}
 
+\sloppy
 \bibliographystyle{plain}
 \bibliography{finite-dtypes}
 
