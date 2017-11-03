@@ -1,6 +1,6 @@
-{\catcode`\/=13\gdef\activeSlash{\catcode`\/=13\def/##1/{\keyword{##1}}}}
+{\catcode`\/=13\gdef\activeSlash{\catcode`\/=13\def/##1/{\kw{##1}}}}
 
-\def\keyword#1{%
+\def\kw#1{%
   \expandafter\ifx\csname#1\endcsname\relax
     \mathsf{#1}%
   \else
@@ -31,3 +31,15 @@
 
 \let\old@verbatim@font=\verbatim@font
 \def\verbatim@font{\fontsize{6}{8}\old@verbatim@font}
+
+\def\subsection{\@startsection
+  {subsection}
+  {2}
+  {\z@}
+  {-.5\baselineskip \@plus -2\p@ \@minus -.2\p@ }
+  {-.5em}
+  {\subsectionfont}}
+
+\def\subsectionfont#1{\textbf{#1.}}
+
+\setcounter{secnumdepth}{1}

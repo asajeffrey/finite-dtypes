@@ -116,7 +116,7 @@ but still provide static guarantees such as memory safety.
 One feature that all of these formalisms have in common is that they support
 types with an infinite number of elements, such as lists or trees.
 The prototypical infinite types are $\mathbb{N}$ (the type of natural
-numbers) and $\keyword{Set}$ (the type of types). This is a mismatch with systems
+numbers) and $\kw{Set}$ (the type of types). This is a mismatch with systems
 programs, where types are often \emph{sized} (for example in Rust,
 types are \texttt{Sized}~\cite[\S3.31]{rust-book} by default).
 In particular, systems programs are usually parameterized by the
@@ -125,16 +125,16 @@ architectures word size, and assume that data fits into memory
 
 In this position paper, we encourage the exploration of programming
 languages in which finite types are the norm. In \S\ref{hacking} we
-present a simple system for finite types, where $\keyword{bits}(k)$
-replaces $\mathbb{N}$ and $\keyword{FSet}(k)$ replaces $\keyword{Set}$.
+present a simple system for finite types, where $\kw{bits}(k)$
+replaces $\mathbb{N}$ and $\kw{FSet}(k)$ replaces $\kw{Set}$.
 In each case $k$ is the bitlength of the type, for example
-if we define $\keyword{two} = [\keyword{0},\keyword{1}]$
-and $\keyword{three} = [\keyword{1},\keyword{1}]$
-then $\keyword{two} \in \keyword{bits}(\keyword{two}) \in \keyword{FSet}(\keyword{two}) \in \keyword{FSet}(\keyword{three})$.
+if we define $\kw{two} = [\kw{0},\kw{1}]$
+and $\kw{three} = [\kw{1},\kw{1}]$
+then $\kw{two} \in \kw{bits}(\kw{two}) \in \kw{FSet}(\kw{two}) \in \kw{FSet}(\kw{three})$.
 
 This system is not fully developed (\emph{hey, this is a position paper!})
-in particular its use of $\keyword{FSet}(k) \in \keyword{FSet}(k+1)$
-is possibly unsound, and its encoding in Agda uses $\keyword{Set} \in \keyword{Set}$
+in particular its use of $\kw{FSet}(k) \in \kw{FSet}(k+1)$
+is possibly unsound, and its encoding in Agda uses $\kw{Set} \in \kw{Set}$
 which is dangerous. \S\ref{hacking} is written in Literate Agda, and has
 been typechecked with Agda~v2.4.2.5. The source is available~\cite{self}.
 
@@ -191,7 +191,7 @@ _/?/ : ∀ {k} {m : 𝔹 ↑ k} → (FSet m) → (FSet (/one/ + m))
 
 In this presentation of finite dependent types, we take binary
 arithmetic (with constants, addition and shifting) as a primitive,
-encoded little-endian. There is a type $\keyword{bits}(k)$ for
+encoded little-endian. There is a type $\kw{bits}(k)$ for
 bitstrings of length $k$. For example, we can go old-school and
 assume a word size of eight bits:
 \begin{code}
@@ -205,7 +205,7 @@ This is spookily cyclic:
 %word =
   /word/ &/in/ /FSet/(/WORDSIZE/)
 \end{code}
-We can break this cycle by expanding out the definition of $\keyword{bits}$:
+We can break this cycle by expanding out the definition of $\kw{bits}$:
 \begin{code}
 %WORDSIZE-expanded =
   /WORDSIZE/ &/in/ (/bool/ /times/ /bool/ /times/ /bool/ /times/ /bool/ \\&\indent
@@ -221,7 +221,7 @@ We can break this cycle by expanding out the definition of $\keyword{bits}$:
   ([ /0/ , /1/ ]) &/in/ (/bool/ /times/ /bool/ /times/ /unit/) \\
              &/in/ /FSet/ ([ /0/ , /1/ ])
 \end{code}
-The $\keyword{bits}$ type is not primitive, since it can be defined
+The $\kw{bits}$ type is not primitive, since it can be defined
 by induction:
 \begin{code}
 /mybits/ = /indn/(/FSet/) (/unitp/) (/lambda/ n /cdot/ /lambda/ A /cdot/ (/bool/ /times/ A))
@@ -234,6 +234,162 @@ For example:
 At this point, we have seen all of the gadgets in this simple finite
 dependent type system. The types are summarized in
 Figure~\ref{built-in-types}.
+
+\section{Design space}
+
+There is a large design space for finite dependent types, and types for systems programs.
+
+\subsection{Type of types}
+
+What should the size of $\kw{FSet}$ be?
+In \S\ref{hacking} the type is $\kw{FSet}(n) \in \kw{FSet}(\kw{one} + n)$
+which models a theory in which types are identified with their cardinality,
+since the cardinality of $\{ 0,\ldots,n \}$ is $n+1$, and if $n$ is a $k$-bit number
+then $n+1$ is a $k$-bit number.
+
+There are alternatives, such as to identify a type with the set of
+bitstrings they contain, so each element of $\kw{FSet}(n)$ is a subset of
+$2^n$, so $\kw{FSet}(n)$ can be represented in $2^n$ bits, which would
+give $\kw{FSet}(n) \in \kw{FSet}(\kw{one} \ll n)$. Alternatively, we
+could postulate an uninterpreted increasing function $f$ and set
+$\kw{FSet}(n) \in \kw{FSet}(f(n))$.
+
+Alternatives which would be problematic is to consider types to be irrelevant,
+and so $\kw{FSet}(n) \in \kw{FSet}(\kw{zero})$, or to be considered just to be identified
+with their inhabitance, and so $\kw{FSet}(n) \in \kw{FSet}(\kw{one})$. In either case,
+we have $\kw{FSet}(n) \in \kw{FSet}(n)$ for some $n$, which would be unsound.
+
+\subsection{Path types}
+
+Dependent type systems usually come with an identity type $a \equiv_A b$
+where $a : A$ and $b : A$. Finite types are no different, but we get a choice
+for what to use as the bitlength, which raises similar questions as for the
+type of types.
+
+If identity types are interpreted as paths as in Homotopy Type Theory~\cite{hott},
+then the size of $A \equiv_{\kw{FSet}(n)} B$ is at most the size of $A \rightarrow B$,
+which would suggest considering $(a \equiv_A b) \in \kw{FSet}(n \ll n)$
+when $A \in \kw{FSet}(n)$.
+
+This makes the type of identities over $A$ different from the type of $A$,
+since $\kw{FSet}(n \ll n)$ is much larger than $\kw{FSet}(n)$. This may give problems
+with, for example, codings of GADTs.
+
+\subsection{Irrelevance}
+
+In any dependent type system, questions of how to model
+irrelevant~\cite{???} data quickly arise, for example Agda's $.A$
+type, where for any $a,b \in .A$ we have $a \equiv_{.A}
+b$. Irrelevance particularly affects finite types, since the size of
+an irrelevant set is at most one, so we would expect it to have type
+$\kw{FSet}(\kw{zero})$, but this means that $.\kw{FSet}(n) \in
+\kw{FSet}(n)$ which is skirting very close to unsoundness.
+
+One place where irrelevance would be very useful is in bitlengths of
+bitlengths, which should not matter: $\kw{FSet}([\kw{1}])$ should be
+the same as $\kw{FSet}([\kw{1},\kw{0}])$.
+
+\subsection{Serialization}
+
+In the theory in \S\ref{hacking}, there is an implicit isomorphism
+between elements of $\kw{FSet}(n)$ and subsets of $\kw{bool}^n$. The isomorphism defines
+a (de)serializer, for example serializing pairs by serializing each projection,
+and serializing functions by serializing the graph of the function.
+
+Part of the design space of a finite type system is how explicit this
+isomorphsim should be. Options include including it in the metatheory,
+including it as irrelevant data in the theory, and including it as
+relevant data in the theory.
+
+The last choice means that every type comes equipped with a serializer,
+which in turn means that parametricity~\cite{parametricity} does not
+hold, and so there are no theorems for free~cite{tff} any more.
+
+\subsection{Induction}
+
+In the theory in \S\ref{hacking}, induction over binary
+numbers is taken as a primitive. It would be nice if this could be
+encoded by induction over the booleans and dependent pairs,
+with induction over numbers relegated to the metatheory.
+
+\subsection{Theory of binary arithmetic}
+
+The theory of finite types is very dependent on the theory of natural
+numbers, and it is very easy to end up type checking dependant on
+properties such as associativity and commutativity of addition.
+Such theorems could be handled by an SMT solver, but this has its own
+issues, such as the interaction between the SMT solver and type
+inference, and the complexity of an SMT solver being visible to
+the end programmer.
+
+\subsection{Pointers}
+
+In systems programming languages such as Rust, cyclic data structures
+are mediated by pointers. In a finite type system, we could allow a
+type of pointers $\&(A)$ where $\&(A) \in \kw{FSet}(\kw{WORDSIZE})$
+when $A \in \kw{FSet}(n)$.
+A typical example is the AST type for a language, which will be a
+type $\kw{AST}$ containing pointers of type $\&\kw{AST}$.
+
+Pointer creation can fail in low-memory situations, so should be
+encapsulated in a monad, for example the parser for an AST would have
+type $\&\kw{str} \rightarrow \kw{A}(\kw{AST})$ for an appropriate monad $\kw{A}$
+which includes failure.
+
+Care needs to be taken about pointers to data which includes sets,
+in particular $\&(\kw{FSet}(\kw{WORDSIZE})) \in
+\kw{FSet}(\kw{WORDSIZE})$ is very close to introducing unsoundness.
+
+\subsection{Metaprogramming}
+
+In order for a system to allow type-safe metaprogramming, we need to
+be able to parse and interpret object languages. Such languages
+include ASTs, the intermediate language (parameterized by type) and
+machine code (parameterized by architecture).
+
+A compiler to architecture $x$ would have type
+$\kw{IL}(\kw{IO}(\kw{unit})) \rightarrow \kw{A}(\kw{MC}(x))$. An exec
+function for the current architecture $\kw{ARCH}$ would have type
+$\kw{MC}(\kw{ARCH}) \rightarrow \kw{IO}(\kw{unit})$. Given those
+we can build, for example, a
+JIT compiler with type $\kw{IL}(\kw{IO}(\kw{unit})) \rightarrow
+\IO(\kw{unit})$.
+
+A desugaring function for a high-level language
+would have type $\kw{HL}(A) \rightarrow \kw{IL}(A)$,
+which allows for features such as Haskell $\kw{do}$-notation,
+or Rust $\#\kw{derive}$ declarations.
+
+As noted in the introduction, building software often includes complex
+I/O effects, such as downloading dependencies, and interacting with
+the file system. The type of a program which downloads dependencies,
+then compiles a program is $\kw{IO}(\kw{A}(\kw{MC}(x)))$. Note that this
+type supports staged computation, which makes it easier to ensure
+build repeatability.
+
+\subsection{Semantic versioning}
+
+Dependencies are usually versioned, for example by semantic versioning~\cite{semver}.
+Semantic versions are triples $(x, y, z)$ where the API for a package only depends on
+$(x, y)$, but its implementation may depend on $(x, y, z)$. Moreover, APIs
+with the same $x$ are meant to be upwardly compatible.
+
+Formalizing this, a package interface is a triple $(\kw{size}, \kw{api}, \kw{cast})$ where 
+$\kw{size} \in (\sum (x, y) \cdot \kw{word})$,
+$\kw{api} \in (\sum (x, y) \cdot \kw{FSet}(\kw{size}(x, y))$, and
+$\kw{cast} \in (\sum (x, y) \cdot \kw{api}(x , y) \rightarrow \kw{api}(x , \kw{one} + y))$.
+A package downloader is a triple $(\kw{.iface}, \kw{impl})$ where
+$\kw{.iface}$ is a package interface, and
+$\kw{impl} \in \sum (x , y , z) \cdot \kw{IO}(\kw{api}(x, y))$.
+
+One subtlety is that the downloader does not need to download every API, just
+the one that is needed, which is why the interface is irrelevant.
+The thing that is relevant is the fact that the implementation typechecks.
+
+\section{Conclusions}
+
+Systems are finite, and are better served by systems which
+encourage the use of finite types.
 
 \sloppy
 \bibliographystyle{plain}
