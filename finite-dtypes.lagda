@@ -96,6 +96,8 @@ $ loc servo/components/script/dom/bindings/codegen/
 There should be a better way to do metaprogramming than Python scripts
 writing source files!
 
+\section{Metaprogramming}
+
 Fortunately, metaprogramming is a well-explored area, 
 notably in the Racket~\cite{racket-lang.org} programming
 language's \texttt{\#lang} declarations.
@@ -113,8 +115,116 @@ and metaprogramming~\cite{Chl10}. Dependent types allow for
 the compile-time computation of types which depend on data,
 but still provide static guarantees such as memory safety.
 
-One feature that all of these formalisms have in common is that they support
-types with an infinite number of elements, such as lists or trees.
+\subsection{Dependent metaprogramming}
+
+In order for a system to allow type-safe metaprogramming, it should be
+able to parse and interpret object languages. Such languages include
+ASTs for surface syntax, the intermediate language (parameterized by
+type) and machine code (parameterized by architecture).
+
+A desugaring function for top-level programs would have type $\kw{AST}
+\rightarrow \kw{F}(\kw{IL}(\kw{prog}))$, for an appropriate monad
+$\kw{F}$ to account for failure, and type $\kw{prog}$ for executable
+programs. Such a function can account for features such as Haskell
+$\kw{do}$-notation, or Rust macros and $\#\kw{derive}$ declarations.
+
+A compiler to architecture $x$ would have type
+$\kw{IL}(\kw{prog}) \rightarrow \kw{MC}(x)$. An exec
+function for the current architecture $\kw{ARCH}$ would have type
+$\kw{MC}(\kw{ARCH}) \rightarrow \kw{IO}(\kw{unit})$. Given those
+it's possible, for example, to implement a
+JIT compiler with type $\kw{IL}(\kw{prog}) \rightarrow
+\kw{IO}(\kw{unit})$.
+
+Building software often includes complex
+I/O effects, such as downloading dependencies, and interacting with
+the file system. The type of a program which downloads dependencies,
+then compiles a program is $\kw{IO}(\kw{F}(\kw{MC}(x)))$. Note that this
+type supports staged computation, which makes it easier to ensure
+build repeatability.
+
+\subsection{Dependent dependencies}
+
+Dependencies are usually versioned, for example by semantic versioning~\cite{semver}.
+Semantic versions are triples $(x, y, z)$ where the API for a package only depends on
+$(x, y)$, but its implementation may depend on $(x, y, z)$. Moreover, APIs
+with the same $x$ are meant to be upwardly compatible.
+
+For example an interface $A(1,0)$ might be:
+\[
+  \{ \kw{size} \in \kw{word}
+  , \kw{A} : \kw{FSet}(\kw{size})
+  , \kw{z} : \kw{A}
+  \}
+\]
+with implementation $a(1,0,1)$:
+\[
+  [ \kw{0}
+  , \kw{unit}
+  , \kw{()}
+  ]
+\]
+When $a(1,0,1)$ is released, its interface is still $A(1,0)$ but its implementation is allowed to change:
+\[
+  [ \kw{1}
+  , \kw{bool}
+  , \kw{false}
+  ]
+\]
+$A(1,1)$ is required to have a compatible interface, for simplicity we will take this
+to be an extension:
+\[
+  \{ \kw{size} : \kw{word}
+  , \kw{A} : \kw{FSet}(\kw{size})
+  , \kw{z} : \kw{A}
+  , \kw{s} : \kw{A} \rightarrow \kw{A}
+  \}
+\]
+for example $a(1,1,1)$ might be:
+\[
+  [ \kw{WORDSIZE}
+  , \kw{word}
+  , \kw{0}
+  , \lambda x \cdot \kw{truncate}(\kw{1} + x)
+  ]
+\]
+Implementations may be dependent, for example $B(1,1)$ might depend on $A(1,y)$ for any $y\ge1$:
+\[
+  \{ \kw{size} : \kw{word}
+  , \kw{A} : \kw{FSet}(\kw{size})
+  , \kw{z} : \kw{A}
+  , \kw{s} : \kw{A} \rightarrow \kw{A}
+  , \cdots
+  \}
+  \rightarrow
+  \{ \kw{one} : \kw{A}
+  \}
+\]
+with matching implementation:
+\[
+  \lambda
+  [ \kw{size}
+  , \kw{A}
+  , \kw{z}
+  , \kw{s}
+  , \cdots
+  ]
+  \cdot
+  [ s(z)
+  ]
+\]
+In summary, an interface $A(x,y)$ is interpreted as family of types
+where $A(x,1+y)$ is an extension of $A(x)$, and
+implementation is interpreted as a family of values
+where $a(x, y, z) \in A(x, y)$.
+A dependent interface (resp.~implementation) is interpreted as
+a dependent function type (resp.~dependent function).
+
+\subsubsection{Finite dependencies}
+
+One feature that all of these examples have in common is that they do not
+require any infinite data. Existing dependent type systems encourage the
+use of infinite types such such as lists or trees.
 The prototypical infinite types are $\mathbb{N}$ (the type of natural
 numbers) and $\kw{Set}$ (the type of types). This is a mismatch with systems
 programs, where types are often \emph{sized} (for example in Rust,
@@ -333,58 +443,12 @@ type $\kw{AST}$ containing pointers of type $\&\kw{AST}$.
 
 Pointer creation can fail in low-memory situations, so should be
 encapsulated in a monad, for example the parser for an AST would have
-type $\&\kw{str} \rightarrow \kw{A}(\kw{AST})$ for an appropriate monad $\kw{A}$
+type $\&\kw{str} \rightarrow \kw{F}(\kw{AST})$ for an appropriate monad $\kw{F}$
 which includes failure.
 
 Care needs to be taken about pointers to data which includes sets,
 in particular $\&(\kw{FSet}(\kw{WORDSIZE})) \in
 \kw{FSet}(\kw{WORDSIZE})$ is very close to introducing unsoundness.
-
-\subsection{Metaprogramming}
-
-In order for a system to allow type-safe metaprogramming, we need to
-be able to parse and interpret object languages. Such languages
-include ASTs, the intermediate language (parameterized by type) and
-machine code (parameterized by architecture).
-
-A compiler to architecture $x$ would have type
-$\kw{IL}(\kw{IO}(\kw{unit})) \rightarrow \kw{A}(\kw{MC}(x))$. An exec
-function for the current architecture $\kw{ARCH}$ would have type
-$\kw{MC}(\kw{ARCH}) \rightarrow \kw{IO}(\kw{unit})$. Given those
-we can build, for example, a
-JIT compiler with type $\kw{IL}(\kw{IO}(\kw{unit})) \rightarrow
-\IO(\kw{unit})$.
-
-A desugaring function for a high-level language
-would have type $\kw{HL}(A) \rightarrow \kw{IL}(A)$,
-which allows for features such as Haskell $\kw{do}$-notation,
-or Rust $\#\kw{derive}$ declarations.
-
-As noted in the introduction, building software often includes complex
-I/O effects, such as downloading dependencies, and interacting with
-the file system. The type of a program which downloads dependencies,
-then compiles a program is $\kw{IO}(\kw{A}(\kw{MC}(x)))$. Note that this
-type supports staged computation, which makes it easier to ensure
-build repeatability.
-
-\subsection{Semantic versioning}
-
-Dependencies are usually versioned, for example by semantic versioning~\cite{semver}.
-Semantic versions are triples $(x, y, z)$ where the API for a package only depends on
-$(x, y)$, but its implementation may depend on $(x, y, z)$. Moreover, APIs
-with the same $x$ are meant to be upwardly compatible.
-
-Formalizing this, a package interface is a triple $(\kw{size}, \kw{api}, \kw{cast})$ where 
-$\kw{size} \in (\sum (x, y) \cdot \kw{word})$,
-$\kw{api} \in (\sum (x, y) \cdot \kw{FSet}(\kw{size}(x, y))$, and
-$\kw{cast} \in (\sum (x, y) \cdot \kw{api}(x , y) \rightarrow \kw{api}(x , \kw{one} + y))$.
-A package downloader is a triple $(\kw{.iface}, \kw{impl})$ where
-$\kw{.iface}$ is a package interface, and
-$\kw{impl} \in \sum (x , y , z) \cdot \kw{IO}(\kw{api}(x, y))$.
-
-One subtlety is that the downloader does not need to download every API, just
-the one that is needed, which is why the interface is irrelevant.
-The thing that is relevant is the fact that the implementation typechecks.
 
 \section{Conclusions}
 
