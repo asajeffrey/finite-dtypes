@@ -10,7 +10,7 @@
 \begin{document}
 
 \title{Finite Dependent Types}
-\subtitle{Fancy Types For Systems Programs}
+\subtitle{Fancy Types For Systems Metaprogramming}
 \author{Alan Jeffrey}
 \orcid{0000-0001-6342-0318}
 \affiliation{Mozilla Research}
