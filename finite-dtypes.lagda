@@ -304,6 +304,12 @@ for example Rust's~\cite{rfc1105}. More research is needed!
 
 \subsection{Finite dependencies}
 
+\begin{comment}
+\begin{code}
+/binary/ :  ∀ {j} (k : 𝔹 ↑ j) → FSet(k)
+\end{code}
+\end{comment}
+
 One feature that all of these examples have in common is that they do not
 require any infinite data. Existing dependent type systems encourage the
 use of infinite types such such as lists or trees.
@@ -311,115 +317,75 @@ The prototypical infinite types are $\mathbb{N}$ (the type of natural
 numbers) and $\kw{Set}$ (the type of types). This is a mismatch with systems
 programs, where types are often \emph{sized} (for example in Rust,
 types are \texttt{Sized}~\cite[\S3.31]{rust-book} by default).
-In particular, systems programs are usually parameterized by the
-architectures word size, and assume that data fits into memory
+In particular, systems programs are usually parameterized by
+$kw{WORDSIZE}$, and assume that data fits into memory
 (for example that arrays are indexed by a word, not by a natural number).
 
-In this position paper, we encourage the exploration of programming
-languages in which finite types are the norm. For example, a simple
-language of finite types is given in Figure~\ref{built-in-types}.
-This system is not fully developed (\emph{hey, this is a position paper!})
-in particular its use of $\kw{FSet}(k) \in \kw{FSet}(k+1)$
-is possibly unsound, and its encoding in Agda uses $\kw{Set} \in \kw{Set}$
-which is dangerous.
+A simple language of finite types is given in Figure~\ref{built-in-types}.
+In this language, all types are finite, in particular
+$\kw{FSet}(n) \in \kw{FSet}(\kw{one} + n)$
+(the size is slightly arbitrary, we could have chosen any increasing
+size, for instance $\kw{FSet}(n) \in \kw{FSet}(\kw{one} \ll n)$).
+The theory is similar to that of sized types~\cite{???},
+restricted to $\omega$ rather than reachable ordinals.
 
-\section{Design space}
+The system is based on a theory of binary arithmetic, but even
+that is definable within the language, for example the type
+of bitstrings is definable by induction:
+\begin{code}
+/binary/ = /indn/
+           (/FSet/)
+           (/unitp/)
+           (/fn/ n /cdot/ /fn/ A /cdot/ (/bool/ /times/ A))
+\end{code}
+For example:
+\begin{code}
+%WORDSIZE =
+  /WORDSIZE/ &/in/ /binary/(/WORDSIZE/)
+\end{code}
+Some issues finite types raise include:
+\begin{description}
 
-There is a large design space for finite dependent types, and types for systems programs.
+\item[Induction:]
+  As the type for $\kw{WORDSIZE}$ suggests,
+  this is all spookily cyclic. In particular, binary numbers
+  are parameterized by their bitlength, which is itself
+  a binary number. An induction principal is needed,
+  even if it is extra-logical, similar to
+  Agda's universe polymorphism~\cite{agda}. We hypothesize
+  that a theory of irrelevant natural numbers might suffice.
 
-\subsection{Type of types}
+\item[Path types:] Dependent type systems usually come with an identity type $a
+  \equiv_A b$ where $a : A$ and $b : A$.
+  If identity types are interpreted as paths as in Homotopy Type Theory~\cite{hott},
+  then the size of $A \equiv_{\kw{FSet}(n)} B$ is at most the size of $A \rightarrow B$,
+  which would suggest considering $(a \equiv_A b) \in \kw{FSet}(n \ll n)$
+  when $A \in \kw{FSet}(n)$.
+  This makes the type of identities over $A$ much larger than the type of $A$,
+  which may give problems with, for example, codings of indexed types.
 
-What should the size of $\kw{FSet}$ be?
-In Figure~\ref{built-in-types} the type is $\kw{FSet}(n) \in \kw{FSet}(\kw{one} + n)$
-which models a theory in which types are identified with their cardinality,
-since the cardinality of $\{ 0,\ldots,n \}$ is $n+1$, and if $n$ is a $k$-bit number
-then $n+1$ is a $k$-bit number.
+\item[Theory of binary arithmetic:]
+  The theory of finite types is very dependent on the theory of natural
+  numbers, and it is very easy to end up type checking dependant on
+  properties such as associativity and commutativity of addition.
+  Such theorems could be handled by an SMT solver, but this has its own
+  issues, such as the interaction between the SMT solver and type
+  inference, and the complexity of an SMT solver being visible to
+  the end programmer.
 
-There are alternatives, such as to identify a type with the set of
-bitstrings they contain, so each element of $\kw{FSet}(n)$ is a subset of
-$2^n$, so $\kw{FSet}(n)$ can be represented in $2^n$ bits, which would
-give $\kw{FSet}(n) \in \kw{FSet}(\kw{one} \ll n)$. Alternatively, we
-could postulate an uninterpreted increasing function $f$ and set
-$\kw{FSet}(n) \in \kw{FSet}(f(n))$.
+\item[Pointers]
+  In systems programming languages such as Rust, cyclic data structures
+  are mediated by pointers. In a finite type system, we could allow a
+  type of pointers $\&(A)$ where $\&(A) \in \kw{FSet}(\kw{WORDSIZE})$
+  when $A \in \kw{FSet}(n)$.
+  Pointer creation can fail in low-memory situations, so should be
+  encapsulated in a monad, similar to Haskell's $\kw{ST}$ monad.
+  Care needs to be taken about pointers to data which includes sets,
+  in particular $\&(\kw{FSet}(\kw{WORDSIZE})) \in
+  \kw{FSet}(\kw{WORDSIZE})$ is very close to introducing unsoundness.
 
-Alternatives which would be problematic is to consider types to be irrelevant,
-and so $\kw{FSet}(n) \in \kw{FSet}(\kw{zero})$, or to be considered just to be identified
-with their inhabitance, and so $\kw{FSet}(n) \in \kw{FSet}(\kw{one})$. In either case,
-we have $\kw{FSet}(n) \in \kw{FSet}(n)$ for some $n$, which would be unsound.
-
-\subsection{Path types}
-
-Dependent type systems usually come with an identity type $a \equiv_A b$
-where $a : A$ and $b : A$. Finite types are no different, but we get a choice
-for what to use as the bitlength, which raises similar questions as for the
-type of types.
-
-If identity types are interpreted as paths as in Homotopy Type Theory~\cite{hott},
-then the size of $A \equiv_{\kw{FSet}(n)} B$ is at most the size of $A \rightarrow B$,
-which would suggest considering $(a \equiv_A b) \in \kw{FSet}(n \ll n)$
-when $A \in \kw{FSet}(n)$.
-
-This makes the type of identities over $A$ different from the type of $A$,
-since $\kw{FSet}(n \ll n)$ is much larger than $\kw{FSet}(n)$. This may give problems
-with, for example, codings of GADTs.
-
-\subsection{Irrelevance}
-
-In any dependent type system, questions of how to model
-irrelevant~\cite{???} data quickly arise, for example Agda's $.A$
-type, where for any $a,b \in .A$ we have $a \equiv_{.A}
-b$. Irrelevance particularly affects finite types, since the size of
-an irrelevant set is at most one, so we would expect it to have type
-$\kw{FSet}(\kw{zero})$, but this means that $.\kw{FSet}(n) \in
-\kw{FSet}(n)$ which is skirting very close to unsoundness.
-
-One place where irrelevance would be very useful is in bitlengths of
-bitlengths, which should not matter: $\kw{FSet}([\kw{1}])$ should be
-the same as $\kw{FSet}([\kw{1},\kw{0}])$.
-
-\subsection{Serialization}
-
-In the theory in Figure~\ref{built-in-types}, there is an implicit isomorphism
-between elements of $\kw{FSet}(n)$ and subsets of $\kw{bool}^n$. The isomorphism defines
-a (de)serializer, for example serializing pairs by serializing each projection,
-and serializing functions by serializing the graph of the function.
-
-Part of the design space of a finite type system is how explicit this
-isomorphsim should be. Options include including it in the metatheory,
-including it as irrelevant data in the theory, and including it as
-relevant data in the theory.
-
-The last choice means that every type comes equipped with a serializer,
-which in turn means that parametricity~\cite{parametricity} does not
-hold, and so there are no theorems for free~cite{tff} any more.
-
-\subsection{Theory of binary arithmetic}
-
-The theory of finite types is very dependent on the theory of natural
-numbers, and it is very easy to end up type checking dependant on
-properties such as associativity and commutativity of addition.
-Such theorems could be handled by an SMT solver, but this has its own
-issues, such as the interaction between the SMT solver and type
-inference, and the complexity of an SMT solver being visible to
-the end programmer.
-
-\subsection{Pointers}
-
-In systems programming languages such as Rust, cyclic data structures
-are mediated by pointers. In a finite type system, we could allow a
-type of pointers $\&(A)$ where $\&(A) \in \kw{FSet}(\kw{WORDSIZE})$
-when $A \in \kw{FSet}(n)$.
-A typical example is the AST type for a language, which will be a
-type $\kw{AST}$ containing pointers of type $\&\kw{AST}$.
-
-Pointer creation can fail in low-memory situations, so should be
-encapsulated in a monad, for example the parser for an AST would have
-type $\&\kw{str} \rightarrow \kw{F}(\kw{AST})$ for an appropriate monad $\kw{F}$
-which includes failure.
-
-Care needs to be taken about pointers to data which includes sets,
-in particular $\&(\kw{FSet}(\kw{WORDSIZE})) \in
-\kw{FSet}(\kw{WORDSIZE})$ is very close to introducing unsoundness.
+\end{description}
+More research is needed!
 
 \section{Conclusions}
 
