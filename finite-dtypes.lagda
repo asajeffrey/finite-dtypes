@@ -203,7 +203,7 @@ then the typing of $\kw{Console}$ is internal to the language:
   &/WHEN/ S /in/ /FSet/(s)
   /AND/ s /in/ /word/
 \end{code}
-Chliapala~\cite{Chl10} has shown that dependent metaprogramming
+Chlipala~\cite{Chl10} has shown that dependent metaprogramming
 can give type-safe bindings for first-order languages like
 SQL schemas. Hopefully it scales to higher-order languages like Web~IDL.
  
@@ -357,7 +357,7 @@ Some issues finite types raise include:
 
 \item[Theory of binary arithmetic:]
   The theory of finite types is very dependent on the theory of natural
-  numbers, and it is very easy to end up type checking dependant on
+  numbers, and it is very easy to end up type checking dependent on
   properties such as associativity and commutativity of addition.
   Such theorems could be handled by an SMT solver, but this has its own
   issues, such as the interaction between the SMT solver and type
@@ -382,7 +382,7 @@ More research is needed!
 
 Dependent types are a good fit for some of the more difficult problems
 with programming in the large: metaprogramming and dependency management.
-Howeever, their focus on infinite types is a mismatch.
+However, their focus on infinite types is a mismatch.
 Systems are finite, and are better served by systems which
 encourage the use of finite types.
 
