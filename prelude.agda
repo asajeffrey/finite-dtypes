@@ -10,7 +10,7 @@ infixr 5 _,_
 infixr 7 _]
 
 infixr 5 _/xor/_ _/land/_ _/lor/_
-infixr 5 /Sigma/ /Pi/ lambda
+infixr 5 /Sigma/ /Pi/ /Pip/ lambda
 infixr 2 id
 infixl 1 WHEN
 infixl 1 AND
@@ -57,9 +57,17 @@ _+n_ : ℕ → ℕ → ℕ
 zero +n k = k
 (succ j) +n k = succ(j +n k)
 
+_⊔_ : ℕ → ℕ → ℕ
+zero ⊔ n = n
+succ m ⊔ zero = succ m
+succ m ⊔ succ n = succ (m ⊔ n)
+
 _↑_ : Set → ℕ → Set
 (A ↑ zero) = ⊤
 (A ↑ (succ n)) = (A × (A ↑ n))
+
+len : ∀ {k} → (𝔹 ↑ k) → ℕ
+len {k} n = k
 
 /IF/_/THEN/_/ELSE/_ : forall {A : 𝔹 -> Set} -> (b : 𝔹) -> A(/true/) -> A(/false/) -> A(b)
 /IF/ /false/ /THEN/ T /ELSE/ F = F
@@ -102,6 +110,11 @@ unary = indn zero succ
 /extend/ : ∀ {k} → (𝔹 ↑ k) → (𝔹 ↑ succ k)
 /extend/ {zero}   _       = (/false/ , /epsilon/)
 /extend/ {succ k} (b , n) = (b , /extend/ n)
+
+/succp/ :  ∀ {k} → (𝔹 ↑ k) → (𝔹 ↑ succ k)
+/succp/ {zero} n = (/false/ , /epsilon/)
+/succp/ {succ k} (/false/ , n) = (/true/ , /extend/ n)
+/succp/ {succ k} (/true/ , n) = (/false/ , /succp/ n)
 
 _/land/_ : 𝔹 → 𝔹 → 𝔹
 (/false/ /land/ b) = /false/
@@ -157,8 +170,8 @@ _++_ : ∀ {A j k} → (A ↑ j) → (A ↑ k) → (A ↑ (j +n k))
 _++_ {A} {zero}   xs       ys = ys
 _++_ {A} {succ j} (x , xs) ys = (x , xs ++ ys)
 
-_/ll/_ : ∀ {j k} → (𝔹 ↑ j) → (n : 𝔹 ↑ k) → (𝔹 ↑ (j +n unary n))
-(m /ll/ n) = (m ++ /zerop/)
+_/ll/_ : ∀ {j k} → (𝔹 ↑ j) → (n : 𝔹 ↑ k) → (𝔹 ↑ (unary n +n j))
+(m /ll/ n) = (/zerop/ {unary n} ++ m)
 
 /truncate/ : ∀ {j k} → (𝔹 ↑ j) → (𝔹 ↑ k)
 /truncate/ {j} {zero} n = /epsilon/
@@ -178,40 +191,102 @@ open FSet public
 /sizeof/ : ∀ {k} → {n : 𝔹 ↑ k} → FSet(n) → (𝔹 ↑ k)
 /sizeof/ {k} {n} A = n
 
-/FSet/ : ∀ {k} -> (n : 𝔹 ↑ k) -> FSet(/one/ + n)
+data _≡_ {A : Set} (x : A) : A → Set where
+  refl : (x ≡ x)
+
+data ℂ : Set where
+  less : ℂ
+  eq : ℂ
+  gtr : ℂ
+
+isless : ℂ → Set
+isless less = ⊤
+isless _ = ⊥
+
+isleq : ℂ → Set
+isleq gtr = ⊥
+isleq _ = ⊤
+
+cmpb : 𝔹 → 𝔹 → ℂ
+cmpb /false/ /false/ = eq
+cmpb /false/ /true/ = less
+cmpb /true/ /false/ = gtr
+cmpb /true/ /true/ = eq
+
+cmpcb : 𝔹 → 𝔹 → ℂ → ℂ
+cmpcb /false/ /false/ c = c
+cmpcb /false/ /true/ c = less
+cmpcb /true/ /false/ c = gtr
+cmpcb /true/ /true/ c = c
+
+cmpc : ∀ {j k} → (𝔹 ↑ j) → (𝔹 ↑ k) → ℂ → ℂ
+cmpc {zero} {zero} m n c = c
+cmpc {zero} {succ k} m (b , n) c = cmpc m n (cmpcb /false/ b c)
+cmpc {succ j} {zero} (a , m) n c = cmpc m n (cmpcb a /false/ c)
+cmpc {succ j} {succ k} (a , m) (b , n) c = cmpc m n (cmpcb a b c)
+
+cmp : ∀ {j k} → (𝔹 ↑ j) → (𝔹 ↑ k) → ℂ
+cmp m n = cmpc m n eq
+
+_<_ : ∀ {j k} → (𝔹 ↑ j) → (𝔹 ↑ k) → Set
+(m < n) = isless (cmp m n)
+
+_≤_ : ∀ {j k} → (𝔹 ↑ j) → (𝔹 ↑ k) → Set
+(m ≤ n) with cmp m n
+(m ≤ n) | gtr = ⊥
+(m ≤ n) | _ = ⊤
+
+borrow : 𝔹 → 𝔹 → 𝔹 → 𝔹
+borrow /false/ b c = b /lor/ c
+borrow /true/ b c = b /land/ c
+
+subc : ∀ {j k} → (m : 𝔹 ↑ j) → (n : 𝔹 ↑ k) → 𝔹 → (𝔹 ↑ j)
+subc {zero} m n c = /epsilon/
+subc {succ j} {zero} (a , m) n c = ((a /xor/ c) , (subc m n (borrow a /false/ c)))
+subc {succ j} {succ k} (a , m) (b , n) c = ((a /xor/ b /xor/ c) , (subc m n (borrow a b c)))
+
+_∸_ : ∀ {j k} → (m : 𝔹 ↑ j) → (n : 𝔹 ↑ k) → (𝔹 ↑ j)
+(m ∸ n) = subc m n /false/
+
+/FSetp/ : ∀ {j k} {m : 𝔹 ↑ j} -> (n : 𝔹 ↑ k) -> {p : n < m} -> FSet(m)
+/FSetp/ n = record { Carrier = FSet(n); encodable = HOLE }
+
+/FSet/ : ∀ {k} -> (n : 𝔹 ↑ k) -> FSet(/succp/ n)
 /FSet/ n = record { Carrier = FSet(n); encodable = HOLE }
 
-/nothingp/ : ∀ {k} → FSet(/zerop/ {k})
+/nothingp/ : ∀ {k} {n : 𝔹 ↑ k} → FSet(n)
 /nothingp/ = record { Carrier = ⊥; encodable = HOLE }
-
-/nothing/[_] : ∀ {k} (n : 𝔹 ↑ k) → FSet(/zerop/ {unary n})
-/nothing/[ n ] = /nothingp/
 
 /nothing/ : FSet(/epsilon/)
 /nothing/ = /nothingp/
 
-/boolp/ : ∀ {k} → FSet(/onep/ {k})
+/boolp/ : ∀ {k} {n : 𝔹 ↑ k} {p : /epsilon/ < n} → FSet(n)
 /boolp/ = record { Carrier = 𝔹; encodable = HOLE }
 
 /bool/ : FSet(/one/)
 /bool/ = /boolp/
 
-/unitp/ : ∀ {k} → FSet(/zerop/ {k})
+/unitp/ : ∀ {k} {n : 𝔹 ↑ k} → FSet(n)
 /unitp/ = record { Carrier = ⊤; encodable = HOLE }
 
-/unit/[_] : ∀ {k} (n : 𝔹 ↑ k) → FSet(/epsilon/[ n ])
-/unit/[ n ] = /unitp/
-
 /unit/ : FSet(/epsilon/)
-/unit/ = /unit/[ /epsilon/ ]
+/unit/ = /unitp/
 
-/bits/ : ∀ {k} (n : 𝔹 ↑ k) ->  FSet(n)
-/bits/ n = record { Carrier = (𝔹 ↑ unary n); encodable = HOLE }
+/bitsp/ : ∀ {j k} {m : 𝔹 ↑ j} → (n : 𝔹 ↑ k) -> {p : n ≤ m} ->  FSet(m)
+/bitsp/ n = record { Carrier = (𝔹 ↑ unary n); encodable = HOLE }
+
+/bits/ : ∀ {k} (n : 𝔹 ↑ k) -> {p : n ≤ n} ->  FSet(n)
+/bits/ n {p} = /bitsp/ n {p} 
 
 /Pi/ : ∀ {j k} -> {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} -> (A : FSet(m)) -> (Carrier(A) → FSet(n)) -> FSet(m + n)
 /Pi/ A B = record { Carrier = Π x ∈ (Carrier A) ∙ Carrier (B x) ; encodable = HOLE }
 
 syntax /Pi/ A (λ x → B) = /prod/ x /in/ A /cdot/ B
+
+/Pip/ : ∀ {j k} -> {m : 𝔹 ↑ j} -> {n : 𝔹 ↑ k} -> (A : FSet(m)) -> {p : m ≤ n} → (Carrier(A) → FSet(n ∸ m)) -> FSet(n)
+/Pip/ A B = record { Carrier = Π x ∈ (Carrier A) ∙ Carrier (B x) ; encodable = HOLE }
+
+syntax /Pip/ A (λ x → B) = /prodp/ x /in/ A /cdot/ B
 
 /Sigma/ : ∀ {j k} -> {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} -> (A : FSet(m)) → ((Carrier A) → FSet(n)) -> FSet(n /ll/ m)
 /Sigma/ A B = record { Carrier = (x : Carrier A) → (Carrier (B x)) ; encodable = HOLE }

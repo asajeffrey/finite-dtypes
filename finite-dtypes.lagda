@@ -41,10 +41,10 @@ open import prelude -- POSTULATES LIVE HERE!
 
 \section{Introduction}
 
-Applications such as web browsers often have issues of scale
-and complexity of the code base. For example, the next-generation
-Servo~\cite{servo.org} web engine contains more than a quarter of a
-million lines of code (counted with \texttt{loc}~\cite{loc}):
+Applications such as web browsers often have issues of scale and
+complexity of the code base. For example, the Servo~\cite{servo.org}
+next generation web engine contains more than a quarter of a million
+lines of code (counted with \texttt{loc}~\cite{loc}):
 \begin{verbatim}
 $ loc servo/components/
 --------------------------------------------------------------------------------
@@ -57,10 +57,9 @@ $ loc servo/components/
 --------------------------------------------------------------------------------
 \end{verbatim}
 That is just the Servo codebase itself. Servo also makes use of the
-Cargo~\cite{crates.io}
-software ecosystem, and has more than 200 transitive dependencies with
-more than a million lines of Rust code, and nine million lines of code
-in all languages:
+Cargo~\cite{crates.io} software ecosystem, and has more than two hundred
+transitive dependencies with more than a million lines of Rust code,
+and nine million lines of code in all languages:
 \begin{verbatim}
 $ loc servo/.cargo/
 ...
@@ -124,47 +123,12 @@ and metaprogramming~\cite{Chl10}. Dependent types allow for
 the compile-time computation of types which depend on data,
 but still provide static guarantees such as memory safety.
 
-\subsection{Dependent metaprogramming}
-
-In order for a system to allow type-safe metaprogramming, it should be
-able to parse and interpret object languages. Such languages include
-ASTs for surface syntax, the intermediate language (parameterized by
-type) and machine code (parameterized by architecture).
-
-A desugaring function for top-level programs would have type $\kw{AST}
-\rightarrow \kw{F}(\kw{IL}(\kw{prog}))$, for an appropriate monad
-$\kw{F}$ to account for failure, and type $\kw{prog}$ for executable
-programs. Such a function can account for features such as Haskell
-do-notation, or Rust macros and $\#\kw{derive}$ declarations.
-
-A compiler to architecture $x$ would have type
-$\kw{IL}(\kw{prog}) \rightarrow \kw{MC}(x)$. An exec
-function for the current architecture $\kw{ARCH}$ would have type
-$\kw{MC}(\kw{ARCH}) \rightarrow \kw{IO}(\kw{unit})$. Given those
-it's possible, for example, to implement a
-JIT compiler with type $\kw{IL}(\kw{prog}) \rightarrow
-\kw{IO}(\kw{unit})$.
-
-Building software often includes complex
-I/O effects, such as downloading dependencies, and interacting with
-the file system. The type of a program which downloads dependencies,
-then compiles a program is $\kw{IO}(\kw{F}(\kw{MC}(x)))$. Note that this
-type supports staged computation, and hence encourages
-build repeatability.
-
-
-% The Agda types of things defined in this section.
+% The Agda types of things defined in this figure.
 \begin{comment}
 \begin{code}
-infixr 5 _/times/_ _/rightarrow/_ _/oplus/_
+infixr 5 _/times/_ _/rightarrow/_
 _/times/_ : ∀ {j k} {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} → (FSet m) -> (FSet n) -> (FSet(m + n))
 _/rightarrow/_ : ∀ {j k} {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} → (A : FSet m) -> (FSet n) -> (FSet (n /ll/ m))
-_/oplus/_ : ∀ {k} {m : 𝔹 ↑ k} → (FSet m) → (FSet m) → (FSet (/one/ + m))
-/inl/ : ∀ {k} → {n : 𝔹 ↑ k} → {A B : FSet(n)} → Carrier(/sum/ x /in/ A /cdot/ (A /oplus/ B))
-/inr/ : ∀ {k} → {n : 𝔹 ↑ k} → {A B : FSet(n)} → Carrier(/sum/ y /in/ B /cdot/ (A /oplus/ B))
-_/?/ : ∀ {k} {m : 𝔹 ↑ k} → (FSet m) → (FSet (/one/ + m))
-/some/ : ∀ {k} → {n : 𝔹 ↑ k} → {A : FSet(n)} → Carrier(/sum/ x /in/ A /cdot/ (A /?/))
-/none/ : ∀ {k} → {n : 𝔹 ↑ k} → (A : FSet(n)) → Carrier(A /?/)
 \end{code}
 \end{comment}
 
@@ -187,28 +151,71 @@ _/?/ : ∀ {k} {m : 𝔹 ↑ k} → (FSet m) → (FSet (/one/ + m))
   &/WHEN/ B /in/ (A /rightarrow/ /FSet/(n))
   /AND/ A /in/ /FSet/(m) \\
 %FSet = \ k (n : 𝔹 ↑ k) ->
-  /FSet/(n) &/in/ /FSet/(/one/ + n)
+  /FSet/(n) &/in/ /FSet/(/succp/(n))
 \end{code}
 \caption{Type rules for built-in types}
 \label{built-in-types}
 \end{figure}
 
+\subsection{Dependent metaprogramming}
+
+\begin{comment}
+\begin{code}
+-- We assume 8-bit words in this paper.
+/WORDSIZE/ = & [ /false/ , /false/ , /false/ , /true/ , /false/ , /false/ , /false/ , /false/ ] \\
+/word/ = & /bits/ (/WORDSIZE/)
+-- Not sure what the real cardinality of IO should be
+/IO/ : ∀ {k} {n : 𝔹 ↑ k} → FSet(n) → FSet(/WORDSIZE/)
+/IO/ = HOLE
+-- Pointers
+/reference/ : ∀ {k} {n : 𝔹 ↑ k} → FSet(n) → FSet(/WORDSIZE/)
+/reference/(A) = record { Carrier = Carrier A ; encodable = HOLE }
+-- Strings
+/str/ : FSet(/WORDSIZE/)
+/str/ = HOLE
+\end{code}
+\end{comment}
+
+Metaprogramming includes the ability to parse and interpret object
+languages. An example object language is Web IDL, which is parsable by
+a function with type $\&\kw{str} \rightarrow \kw{F}(\kw{IDL})$, for an
+appropriate monad $\kw{F}$ to account for failure.
+For instance, the Web IDL interface:
+\begin{verbatim}
+  interface Console { log(DOMString moduleURL); };
+\end{verbatim}
+might be interpreted as:
+\begin{code}
+%Console : Carrier(/FSet/([ /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /true/ ]))
+%Console =
+  & /prodp/ /size/ /in/ /word/ /cdot/
+  /prodp/ /Console/ /in/ /FSet/(/size/) \\&\indent /cdot/
+  /prodp/ /log/ /in/ /reference/((/Console/ /times/ /reference/ /str/) /rightarrow/ /IO/(/unit/)) /cdot/
+  /unitp/ 
+\end{code}
+Chliapala~\cite{Chl10} has shown that this kind of metaprogramming
+can be used to provide type-safe bindings for, for example,
+SQL schemas and ORMs.
+
+Building software often includes complex
+I/O effects, such as downloading dependencies, and interacting with
+the file system. The type of a program which downloads dependencies,
+then executes a program is $\kw{IO}(\kw{F}(\kw{IO}(\kw{unit})))$. Note that this
+type supports staged computation, and hence encourages
+build repeatability.
+
+
 \subsection{Dependent dependencies}
 
 \begin{comment}
 \begin{code}
-infixr 5 /Pip/
-/WORDSIZE/ = & [ /false/ , /false/ , /false/ , /true/ , /false/ , /false/ , /false/ , /false/ ] \\
-/word/ = & /bits/ (/WORDSIZE/)
-/Pip/ : ∀ {j k} {m : 𝔹 ↑ j} → (A : FSet(m)) → {f : Carrier A → 𝔹 ↑ k} → (∀ x → FSet(f x)) → FSet(/max/ {k})
-/Pip/ A B = record { Carrier = Π x ∈ Carrier A ∙ Carrier (B x) ; encodable = HOLE }
-syntax /Pip/ A (λ x → B) = /prodp/ x /in/ A /cdot/ B
-/A[1,0]/ : FSet(/max/)
-/A[1,1]/ : FSet(/max/)
+size = [ /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /true/ ]
+/A[1,0]/ : FSet(size)
+/A[1,1]/ : FSet(size)
 /a[1,0,1]/ : Carrier(/A[1,0]/)
 /a[1,0,2]/ : Carrier(/A[1,0]/)
 /a[1,1,0]/ : Carrier(/A[1,1]/)
-/B[1,0]/ : Carrier(/A[1,1]/) → FSet(/max/)
+/B[1,0]/ : Carrier(/A[1,1]/) → FSet(size)
 /b[1,0,1]/ : ∀ a → (Carrier(/B[1,0]/ a))
 \end{code}
 \end{comment}
@@ -223,25 +230,23 @@ together with an element $\kw{z}\in\kw{T}$:
   /prodp/ /size/ /in/ /word/ /cdot/
   /prodp/ /T/ /in/ /FSet/(/size/) \\&\indent /cdot/ 
   /prodp/ /z/ /in/ /T/ /cdot/
-  /unit/
+  /unitp/
 \end{code}
 One possible implementation sets $\kw{T}$ to be $\kw{unit}$:
 \begin{code}
-/a[1,0,1]/ =
-  ( /zerop/
-  , /unitp/
-  , /epsilon/
-  , /epsilon/
-  )
+/a[1,0,1]/ = (
+  /zerop/ ,
+  /unitp/ ,
+  /epsilon/ ,
+  /epsilon/ )
 \end{code}
 The next version might set $\kw{T}$ to be $\kw{bool}$:
 \begin{code}
-/a[1,0,2]/ =
-  ( /onep/
-  , /boolp/
-  , /false/
-  , /epsilon/
-  )
+/a[1,0,2]/ = (
+  /onep/ ,
+  /boolp/ ,
+  /false/ ,
+  /epsilon/ )
 \end{code}
 Bumping the minor version requires an implementation with a compatible interface,
 for simplicity we will take this to be an extension. For example the next major
@@ -249,10 +254,10 @@ release might require $\kw{T}$ to support a successor function:
 \begin{code}
 /A[1,1]/ = &
   /prodp/ /size/ /in/ /word/ /cdot/
-  /prodp/ /T/ /in/ /FSet/(/size/) \\&\indent /cdot/
+  /prodp/ /T/ /in/ /FSet/(/size/) \\&\indent /cdot/ 
   /prodp/ /z/ /in/ /T/ /cdot/
-  /prodp/ /s/ /in/ (/T/ /rightarrow/ /T/) /cdot/
-  /unit/
+  /prodp/ /s/ /in/ /reference/(/T/ /rightarrow/ /T/) /cdot/
+  /unitp/
 \end{code}
 For instance, this can be implemented by setting $\kw{T}$ to be $\kw{word}$:
 \begin{code}
@@ -268,8 +273,8 @@ For instance, this can be implemented by setting $\kw{T}$ to be $\kw{word}$:
 Implementations may be dependent, for example $\kw{B}$ might depend on $\kw{A}[1,y]$ for any $y\ge1$:
 \begin{code}
 /B[1,0]/(/size/ , /A/ , /z/ , /s/ , /ldots/) =
-  /prodp/ /ss/ /in/ (/A/ /rightarrow/ /A/) /cdot/
-  /unit/
+  /prodp/ /ss/ /in/ /reference/(/A/ /rightarrow/ /A/) /cdot/
+  /unitp/
 \end{code}
 with matching implementation:
 \begin{code}
@@ -418,36 +423,3 @@ encourage the use of finite types.
 
 \end{document}
 
-
-
-
-The definition of tagged union in terms of dependent pairs:
-\begin{code}
-(A /oplus/ B) = & (/prod/ b /in/ /bool/ /cdot/ /IF/ b /THEN/ A /ELSE/ B) \\
-/inl/(x) = & (/true/ , x) \\
-/inr/(y) = & (/false/ , y)
-\end{code}
-The definition of options in terms of tagged unions:
-\begin{code}
-(A /?/) = & (A /oplus/ /bits/(/sizeof/(A))) \\
-/some/(x) = & /inl/(x) \\
-/none/(A) = & /inr/(/zerop/)
-\end{code}
-Derived typing rules:
-\begin{code}
-%times = \ k (m n : 𝔹 ↑ k) ->
-  (A /times/ B) &/in/ /FSet/(m + n)
-  &/WHEN/ A /in/ /FSet/(m)
-  /AND/ B /in/ /FSet/(n) \\
-%rightarrow = \ j k (m : 𝔹 ↑ j) (n : 𝔹 ↑ k) ->
-  (A /rightarrow/ B) &/in/ /FSet/(n /ll/ m)
-  &/WHEN/ A /in/ /FSet/(m)
-  /AND/ B /in/ /FSet/(n) \\
-%oplus = \ k (n : 𝔹 ↑ k) ->
-  (A /oplus/ B) &/in/ /FSet/(/one/ + n)
-  &/WHEN/ A /in/ /FSet/(n)
-  /AND/ B /in/ /FSet/(n) \\
-%? = \ k (n : 𝔹 ↑ k) ->
-  (A /?/) &/in/ /FSet/(/one/ + n)
-  &/WHEN/ A /in/ /FSet/(n)
-\end{code}
