@@ -9,8 +9,8 @@ infixr 3 [_
 infixr 5 _,_
 infixr 7 _]
 
-infixr 5 _/xor/_ _/land/_ _/lor/_
-infixr 5 /Sigma/ /Pi/ /Pip/ lambda
+infixr 5 _/xor/_ _/land/_ _/lor/_ _+_ _/ll/_ _/gg/_
+infixr 5 /Sigma/ /Sigmap/ /Pi/ /Pip/ lambda tlambda
 infixr 2 id
 infixl 1 WHEN
 infixl 1 AND
@@ -130,7 +130,8 @@ _/lor/_ : 𝔹 → 𝔹 → 𝔹
 
 _/xor/_ : 𝔹 → 𝔹 → 𝔹
 (/false/ /xor/ b) = b
-(/true/ /xor/ b) = /neg/ b
+(/true/ /xor/ /false/) = /true/
+(/true/ /xor/ /true/) = /false/
 
 /carry/ : 𝔹 → 𝔹 → 𝔹 → 𝔹
 /carry/ /false/ a b = a /land/ b
@@ -173,10 +174,24 @@ _++_ {A} {succ j} (x , xs) ys = (x , xs ++ ys)
 _/ll/_ : ∀ {j k} → (𝔹 ↑ j) → (n : 𝔹 ↑ k) → (𝔹 ↑ (unary n +n j))
 (m /ll/ n) = (/zerop/ {unary n} ++ m)
 
+_-n_ : ℕ → ℕ → ℕ
+(m -n zero) = m
+(zero -n n) = zero
+(succ m -n succ n) = (m -n n)
+
+drop : ∀ {A j} (k : ℕ) → (A ↑ j) → (A ↑ (j -n k))
+drop zero xs = xs
+drop {A} {zero} (succ k) xs = /epsilon/
+drop {A} {succ j} (succ k) (x , xs) = drop k xs
+
+_/gg/_ : ∀ {j k} → (𝔹 ↑ j) → (n : 𝔹 ↑ k) → (𝔹 ↑ (j -n unary n))
+m /gg/ n = drop (unary n) m
+
 /truncate/ : ∀ {j k} → (𝔹 ↑ j) → (𝔹 ↑ k)
 /truncate/ {j} {zero} n = /epsilon/
 /truncate/ {zero} {succ k} n = /zerop/
 /truncate/ {succ j} {succ k} (a , n) = (a , /truncate/ n)
+
 
 -- Finite sets
 
@@ -237,8 +252,10 @@ _≤_ : ∀ {j k} → (𝔹 ↑ j) → (𝔹 ↑ k) → Set
 (m ≤ n) | _ = ⊤
 
 borrow : 𝔹 → 𝔹 → 𝔹 → 𝔹
-borrow /false/ b c = b /lor/ c
-borrow /true/ b c = b /land/ c
+borrow /false/ /false/ c = c
+borrow /false/ /true/ c = /true/
+borrow /true/ /false/ c = /false/
+borrow /true/ /true/ c = c
 
 subc : ∀ {j k} → (m : 𝔹 ↑ j) → (n : 𝔹 ↑ k) → 𝔹 → (𝔹 ↑ j)
 subc {zero} m n c = /epsilon/
@@ -293,10 +310,20 @@ syntax /Pip/ A (λ x → B) = /prodp/ x /in/ A /cdot/ B
 
 syntax /Sigma/ A (λ x → B) = /sum/ x /in/ A /cdot/ B
 
+/Sigmap/ : ∀ {j k} -> {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} -> (A : FSet(m)) → {p : m ≤ n} → ((Carrier A) → FSet(n /gg/ m)) -> FSet(n)
+/Sigmap/ A B = record { Carrier = (x : Carrier A) → (Carrier (B x)) ; encodable = HOLE }
+
+syntax /Sigmap/ A (λ x → B) = /sump/ x /in/ A /cdot/ B
+
 lambda : ∀ {A : Set} {B : A → Set} → (∀ x → B(x)) → (∀ x → B(x))
 lambda f = f
 
-syntax lambda (λ x → e) = /lambda/ x /cdot/ e
+syntax lambda (λ x → e) = /fn/ x /cdot/ e
+
+tlambda : ∀ {k} {n : 𝔹 ↑ k} (A : FSet(n)) {B : Carrier A → Set} → (∀ x → B(x)) → (∀ x → B(x))
+tlambda A f = f
+
+syntax tlambda A (λ x → e) = /fn/ x /in/ A /cdot/ e
 
 /indn/ :
   {h : ∀ {k} → (𝔹 ↑ k) → ℕ} →

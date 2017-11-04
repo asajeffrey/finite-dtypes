@@ -23,7 +23,8 @@
 \def\ss{\mathsf{ss}}
 
 \def\indent{{\quad}}
-\def\textlambda{\lambda}
+
+\def\fn{\mathop\lambda}
 
 \def\zero{\mathsf{0}}
 \def\zerop{\mathsf{0}}
@@ -32,13 +33,15 @@
 \def\unitp{\mathsf{unit}}
 \def\boolp{\mathsf{bool}}
 \def\prodp{\prod}
+\def\succp{\mathsf{succ}}
 
 \newenvironment{code}
   {\activeSlash\[\begin{array}{r@{\,}l@{\,}l}\ignorespaces}
   {\end{array}\]\ignorespacesafterend}
 
-\let\old@verbatim@font=\verbatim@font
-\def\verbatim@font{\fontsize{6}{8}\old@verbatim@font}
+\newenvironment{tinyverb}
+  {\fontsize{6}{8}\verbatim}
+  {\endverbatim}
 
 \def\subsection{\@startsection
   {subsection}

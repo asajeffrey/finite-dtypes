@@ -45,7 +45,7 @@ Applications such as web browsers often have issues of scale and
 complexity of the code base. For example, the Servo~\cite{servo.org}
 next generation web engine contains more than a quarter of a million
 lines of code (counted with \texttt{loc}~\cite{loc}):
-\begin{verbatim}
+\begin{tinyverb}
 $ loc servo/components/
 --------------------------------------------------------------------------------
  Language             Files        Lines        Blank      Comment         Code
@@ -55,12 +55,12 @@ $ loc servo/components/
 --------------------------------------------------------------------------------
  Total                  961       353834        33406        37472       282956
 --------------------------------------------------------------------------------
-\end{verbatim}
+\end{tinyverb}
 That is just the Servo codebase itself. Servo also makes use of the
 Cargo~\cite{crates.io} software ecosystem, and has more than two hundred
 transitive dependencies with more than a million lines of Rust code,
 and nine million lines of code in all languages:
-\begin{verbatim}
+\begin{tinyverb}
 $ loc servo/.cargo/
 ...
  Rust                  2274      1541124        65910       111065      1364149
@@ -68,9 +68,9 @@ $ loc servo/.cargo/
 --------------------------------------------------------------------------------
  Total                58295     11784796      1274681      1179475      9330640
 --------------------------------------------------------------------------------
-\end{verbatim}
+\end{tinyverb}
 Building Servo generates even more source code:
-\begin{verbatim}
+\begin{tinyverb}
 $ loc servo/target/
 ...
  Rust                   611       893414        74200        13194       806020
@@ -78,11 +78,11 @@ $ loc servo/target/
 --------------------------------------------------------------------------------
  Total                 3901      1660507       174703       107729      1378075
 --------------------------------------------------------------------------------
-\end{verbatim}
+\end{tinyverb}
 Much of this generated code comes from the \texttt{script} component,
-which generates Rust bindings for the WebIDL~\cite{webidl}
-interfaces for the HTML JavaScript APIs~\cite{whatwg}.
-\begin{verbatim}
+which generates Rust bindings for the Web~IDL~\cite{webidl}
+interfaces for the HTML JavaScript APIs~\cite{whatwg}:
+\begin{tinyverb}
 $ loc servo/target/debug/build/script-*/
 ...
  Rust                   579       781977        63352         6424       712201
@@ -90,9 +90,9 @@ $ loc servo/target/debug/build/script-*/
 --------------------------------------------------------------------------------
  Total                  592       800055        66936         9849       723270
 --------------------------------------------------------------------------------
-\end{verbatim}
+\end{tinyverb}
 The code generator itself is twenty thousand lines of Python script:
-\begin{verbatim}
+\begin{tinyverb}
 $ loc servo/components/script/dom/bindings/codegen/
 ...
  Python                  80        26919         3903         2112        20904
@@ -100,7 +100,7 @@ $ loc servo/components/script/dom/bindings/codegen/
 --------------------------------------------------------------------------------
  Total                   81        26932         3904         2112        20916
 --------------------------------------------------------------------------------
-\end{verbatim}
+\end{tinyverb}
 There should be a better way to do metaprogramming than Python scripts
 writing source files!
 
@@ -173,37 +173,42 @@ _/rightarrow/_ : ∀ {j k} {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} → (A : FSet m) ->
 -- Strings
 /str/ : FSet(/WORDSIZE/)
 /str/ = HOLE
+-- Console defined below
+csize = (/WORDSIZE/ /ll/ /WORDSIZE/) /ll/ /WORDSIZE/
+/Console/ : forall /ssize/ -> FSet(/ssize/) -> Carrier(/FSet/(csize))
 \end{code}
 \end{comment}
 
-Metaprogramming includes the ability to parse and interpret object
-languages. An example object language is Web IDL, which is parsable by
-a function with type $\&\kw{str} \rightarrow \kw{F}(\kw{IDL})$, for an
-appropriate monad $\kw{F}$ to account for failure.
-For instance, the Web IDL interface:
+Metaprogramming includes the ability to interpret object
+languages such as Web~IDL. For example:
 \begin{verbatim}
   interface Console { log(DOMString moduleURL); };
 \end{verbatim}
 might be interpreted as:
 \begin{code}
-%Console : Carrier(/FSet/([ /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /true/ ]))
-%Console =
-  & /prodp/ /size/ /in/ /word/ /cdot/
-  /prodp/ /Console/ /in/ /FSet/(/size/) \\&\indent /cdot/
-  /prodp/ /log/ /in/ /reference/((/Console/ /times/ /reference/ /str/) /rightarrow/ /IO/(/unit/)) /cdot/
-  /unitp/ 
+/Console/ = &
+  /fn/ /ssize/ /in/ /word/ /cdot/
+  /fn/ /DOMString/ /in/ /FSet/(/ssize/) \\&\indent /cdot/
+  /prodp/ /csize/ /in/ /word/ /cdot/
+  /prodp/ /Console/ /in/ /FSet/(/csize/) \\&\indent /cdot/
+  /prodp/ /log/ /in/ /reference/((/Console/ /times/ /DOMString/) /rightarrow/ /IO/(/unit/)) \\&\indent /cdot/
+  /unitp/
 \end{code}
-Chliapala~\cite{Chl10} has shown that this kind of metaprogramming
-can be used to provide type-safe bindings for, for example,
-SQL schemas and ORMs.
-
-Building software often includes complex
-I/O effects, such as downloading dependencies, and interacting with
-the file system. The type of a program which downloads dependencies,
-then executes a program is $\kw{IO}(\kw{F}(\kw{IO}(\kw{unit})))$. Note that this
-type supports staged computation, and hence encourages
-build repeatability.
-
+The important point about this interpretation is that it is internal
+to the system, and can be typed. If we define:
+\begin{code}
+/CSize/ = & (/WORDSIZE/ /ll/ /WORDSIZE/) /ll/ /WORDSIZE/ \\
+\end{code}
+then the typing of $\kw{Console}$ is internal to the language:
+\begin{code}
+%Console =
+  /Console/(s)(S) &/in/ /FSet/(/CSize/)
+  &/WHEN/ S /in/ /FSet/(s)
+  /AND/ s /in/ /word/
+\end{code}
+Chliapala~\cite{Chl10} has shown that dependent metaprogramming
+can give type-safe bindings for first-order languages like
+SQL schemas. Hopefully it scales to higher-order languages like Web~IDL.
 
 \subsection{Dependent dependencies}
 
@@ -261,7 +266,7 @@ release might require $\kw{T}$ to support a successor function:
 \end{code}
 For instance, this can be implemented by setting $\kw{T}$ to be $\kw{word}$:
 \begin{code}
-/tsucc/ = & (/lambda/ x /cdot/ /truncate/(/one/ + x)) \\
+/tsucc/ = & (/fn/ x /cdot/ /truncate/(/one/ + x)) \\
 /a[1,1,0]/ = &
   ( /WORDSIZE/
   , /word/
@@ -279,7 +284,7 @@ Implementations may be dependent, for example $\kw{B}$ might depend on $\kw{A}[1
 with matching implementation:
 \begin{code}
 /b[1,0,1]/(/size/ , /A/ , /z/ , /s/ , /ldots/) =
-  ( (/lambda/ x /cdot/ /s/(/s/(x)))
+  ( (/fn/ x /cdot/ /s/(/s/(x)))
   , /epsilon/
   )
 \end{code}
