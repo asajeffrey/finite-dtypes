@@ -22,7 +22,8 @@
 \copyrightyear{%
   \includegraphics[height=1.5ex]{cc-by-88x31.png}
   \url{https://creativecommons.org/licenses/by/4.0/}\\
-  This work is licensed under a Creative Commons Attribution 4.0 International License%
+  This work is licensed under a Creative Commons Attribution 4.0 International License.\\
+  This paper~\cite{self} is written in Literate Agda, and typechecked with Agda~v2.4.2.5%
 }
 \setcopyright{none}
 \settopmatter{printacmref=false}
@@ -305,9 +306,6 @@ in particular its use of $\kw{FSet}(k) \in \kw{FSet}(k+1)$
 is possibly unsound, and its encoding in Agda uses $\kw{Set} \in \kw{Set}$
 which is dangerous.
 
-This paper is written in Literate Agda, and all display math has
-been typechecked with Agda~v2.4.2.5. The source is available~\cite{self}.
-
 \section{Design space}
 
 There is a large design space for finite dependent types, and types for systems programs.
@@ -408,6 +406,9 @@ in particular $\&(\kw{FSet}(\kw{WORDSIZE})) \in
 
 \section{Conclusions}
 
+Dependent types are a good fit for some of the more difficult problems
+with programming in the large: metaprogramming and dependency management.
+Howeever, their focus on infinite types such as $\mathbb{N}$ is a mismatch.
 Systems are finite, and are better served by systems which
 encourage the use of finite types.
 
