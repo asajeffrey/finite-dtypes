@@ -209,7 +209,8 @@ then the typing of $\kw{Console}$ is internal to the language:
 Chliapala~\cite{Chl10} has shown that dependent metaprogramming
 can give type-safe bindings for first-order languages like
 SQL schemas. Hopefully it scales to higher-order languages like Web~IDL.
-
+More research is needed!
+ 
 \subsection{Dependent dependencies}
 
 \begin{comment}
@@ -289,15 +290,17 @@ with matching implementation:
   )
 \end{code}
 In summary, an interface $A[x,y]$ is interpreted as family of types
-where if $y\le y'$ then $A[x,y] :> A[x,y']$ for an appropriate notion
-of subtyping. Note: handwaving.
+where if $y\le y'$ then $A[x,y] :> A[x,y']$ for an appropriate
+definition of \emph{interface evolution}.
+Dependent packages are treated in the style
+of Kripke semantics, as functions
+$\forall A[x,y'] <: A[x,y] \cdot B[m,n]$.
 
 There has been much attention paid to dependent types for module
 systems~\cite{???}. In some ways, dependency management is simpler
-because the dependency graph is required to be acyclic, but it
-does make non-trivial use of subtyping. Dependent packages
-are interpreted in the style of Kripke semantics, as functions
-$\forall A[x,y'] <: A[x,y] \cdot B[m,n]$.
+because the dependency graph is required to be acyclic,
+but it does introduce interface evolution which can be complex,
+for example Rust's~\cite{rfc1105}. More research is needed!
 
 \subsection{Finite dependencies}
 
