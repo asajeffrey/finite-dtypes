@@ -28,6 +28,14 @@
 \settopmatter{printacmref=false}
 \urlstyle{tt}
 
+% Set up the basic definitions.
+\begin{comment}
+\begin{code}
+{-# OPTIONS --type-in-type #-} -- WARNING, CLAXONS!
+open import prelude -- POSTULATES LIVE HERE!
+\end{code}
+\end{comment}
+
 \maketitle
 
 \section{Introduction}
@@ -126,7 +134,7 @@ A desugaring function for top-level programs would have type $\kw{AST}
 \rightarrow \kw{F}(\kw{IL}(\kw{prog}))$, for an appropriate monad
 $\kw{F}$ to account for failure, and type $\kw{prog}$ for executable
 programs. Such a function can account for features such as Haskell
-$\kw{do}$-notation, or Rust macros and $\#\kw{derive}$ declarations.
+do-notation, or Rust macros and $\#\kw{derive}$ declarations.
 
 A compiler to architecture $x$ would have type
 $\kw{IL}(\kw{prog}) \rightarrow \kw{MC}(x)$. An exec
@@ -140,124 +148,9 @@ Building software often includes complex
 I/O effects, such as downloading dependencies, and interacting with
 the file system. The type of a program which downloads dependencies,
 then compiles a program is $\kw{IO}(\kw{F}(\kw{MC}(x)))$. Note that this
-type supports staged computation, which makes it easier to ensure
+type supports staged computation, and hence encourages
 build repeatability.
 
-\subsection{Dependent dependencies}
-
-Dependencies are usually versioned, for example by semantic versioning~\cite{semver}.
-Semantic versions are triples $(x, y, z)$ where the API for a package only depends on
-$(x, y)$, but its implementation may depend on $(x, y, z)$. Moreover, APIs
-with the same $x$ are meant to be upwardly compatible.
-
-For example an interface $A(1,0)$ might be:
-\[
-  \{ \kw{size} \in \kw{word}
-  , \kw{A} : \kw{FSet}(\kw{size})
-  , \kw{z} : \kw{A}
-  \}
-\]
-with implementation $a(1,0,1)$:
-\[
-  [ \kw{0}
-  , \kw{unit}
-  , \kw{()}
-  ]
-\]
-When $a(1,0,1)$ is released, its interface is still $A(1,0)$ but its implementation is allowed to change:
-\[
-  [ \kw{1}
-  , \kw{bool}
-  , \kw{false}
-  ]
-\]
-$A(1,1)$ is required to have a compatible interface, for simplicity we will take this
-to be an extension:
-\[
-  \{ \kw{size} : \kw{word}
-  , \kw{A} : \kw{FSet}(\kw{size})
-  , \kw{z} : \kw{A}
-  , \kw{s} : \kw{A} \rightarrow \kw{A}
-  \}
-\]
-for example $a(1,1,1)$ might be:
-\[
-  [ \kw{WORDSIZE}
-  , \kw{word}
-  , \kw{0}
-  , \lambda x \cdot \kw{truncate}(\kw{1} + x)
-  ]
-\]
-Implementations may be dependent, for example $B(1,1)$ might depend on $A(1,y)$ for any $y\ge1$:
-\[
-  \{ \kw{size} : \kw{word}
-  , \kw{A} : \kw{FSet}(\kw{size})
-  , \kw{z} : \kw{A}
-  , \kw{s} : \kw{A} \rightarrow \kw{A}
-  , \cdots
-  \}
-  \rightarrow
-  \{ \kw{one} : \kw{A}
-  \}
-\]
-with matching implementation:
-\[
-  \lambda
-  [ \kw{size}
-  , \kw{A}
-  , \kw{z}
-  , \kw{s}
-  , \cdots
-  ]
-  \cdot
-  [ s(z)
-  ]
-\]
-In summary, an interface $A(x,y)$ is interpreted as family of types
-where $A(x,1+y)$ is an extension of $A(x)$, and
-implementation is interpreted as a family of values
-where $a(x, y, z) \in A(x, y)$.
-A dependent interface (resp.~implementation) is interpreted as
-a dependent function type (resp.~dependent function).
-
-\subsubsection{Finite dependencies}
-
-One feature that all of these examples have in common is that they do not
-require any infinite data. Existing dependent type systems encourage the
-use of infinite types such such as lists or trees.
-The prototypical infinite types are $\mathbb{N}$ (the type of natural
-numbers) and $\kw{Set}$ (the type of types). This is a mismatch with systems
-programs, where types are often \emph{sized} (for example in Rust,
-types are \texttt{Sized}~\cite[\S3.31]{rust-book} by default).
-In particular, systems programs are usually parameterized by the
-architectures word size, and assume that data fits into memory
-(for example that arrays are indexed by a word, not by a natural number).
-
-In this position paper, we encourage the exploration of programming
-languages in which finite types are the norm. In \S\ref{hacking} we
-present a simple system for finite types, where $\kw{bits}(k)$
-replaces $\mathbb{N}$ and $\kw{FSet}(k)$ replaces $\kw{Set}$.
-In each case $k$ is the bitlength of the type, for example
-if we define $\kw{two} = [\kw{0},\kw{1}]$
-and $\kw{three} = [\kw{1},\kw{1}]$
-then $\kw{two} \in \kw{bits}(\kw{two}) \in \kw{FSet}(\kw{two}) \in \kw{FSet}(\kw{three})$.
-
-This system is not fully developed (\emph{hey, this is a position paper!})
-in particular its use of $\kw{FSet}(k) \in \kw{FSet}(k+1)$
-is possibly unsound, and its encoding in Agda uses $\kw{Set} \in \kw{Set}$
-which is dangerous. \S\ref{hacking} is written in Literate Agda, and has
-been typechecked with Agda~v2.4.2.5. The source is available~\cite{self}.
-
-\section{Simple finite dependent types}
-\label{hacking}
-
-% Set up the basic definitions.
-\begin{comment}
-\begin{code}
-{-# OPTIONS --type-in-type #-} -- WARNING, CLAXONS!
-open import prelude -- POSTULATES LIVE HERE!
-\end{code}
-\end{comment}
 
 % The Agda types of things defined in this section.
 \begin{comment}
@@ -279,9 +172,9 @@ _/?/ : ∀ {k} {m : 𝔹 ↑ k} → (FSet m) → (FSet (/one/ + m))
 (A /times/ B) = & (/prod/ x /in/ A /cdot/ B) \\
 (A /rightarrow/ B) = & (/sum/ x /in/ A /cdot/ B) \\ \\
 %nothing =
-  /nothing/ &/in/ /FSet/(/zero/) \\
+  /nothing/ &/in/ /FSet/(/zerop/) \\
 %unit =
-  /unit/ &/in/ /FSet/(/zero/) \\
+  /unit/ &/in/ /FSet/(/zerop/) \\
 %bool =
   /bool/ &/in/ /FSet/(/one/) \\
 %prod = \ j k (m : 𝔹 ↑ j) (n : 𝔹 ↑ k) ->
@@ -299,51 +192,121 @@ _/?/ : ∀ {k} {m : 𝔹 ↑ k} → (FSet m) → (FSet (/one/ + m))
 \label{built-in-types}
 \end{figure}
 
-In this presentation of finite dependent types, we take binary
-arithmetic (with constants, addition and shifting) as a primitive,
-encoded little-endian. There is a type $\kw{bits}(k)$ for
-bitstrings of length $k$. For example, we can go old-school and
-assume a word size of eight bits:
+\subsection{Dependent dependencies}
+
+\begin{comment}
 \begin{code}
-/WORDSIZE/ = & [ /0/ , /0/ , /0/ , /1/ , /0/ , /0/ , /0/ , /0/ ] \\
+infixr 5 /Pip/
+/WORDSIZE/ = & [ /false/ , /false/ , /false/ , /true/ , /false/ , /false/ , /false/ , /false/ ] \\
 /word/ = & /bits/ (/WORDSIZE/)
+/Pip/ : ∀ {j k} {m : 𝔹 ↑ j} → (A : FSet(m)) → {f : Carrier A → 𝔹 ↑ k} → (∀ x → FSet(f x)) → FSet(/max/ {k})
+/Pip/ A B = record { Carrier = Π x ∈ Carrier A ∙ Carrier (B x) ; encodable = HOLE }
+syntax /Pip/ A (λ x → B) = /prodp/ x /in/ A /cdot/ B
+/A[1,0]/ : FSet(/max/)
+/A[1,1]/ : FSet(/max/)
+/a[1,0,1]/ : Carrier(/A[1,0]/)
+/a[1,0,2]/ : Carrier(/A[1,0]/)
+/a[1,1,0]/ : Carrier(/A[1,1]/)
+/B[1,0]/ : Carrier(/A[1,1]/) → FSet(/max/)
+/b[1,0,1]/ : ∀ a → (Carrier(/B[1,0]/ a))
 \end{code}
-This is spookily cyclic:
+\end{comment}
+
+Dependencies are usually versioned, for example by semantic versioning~\cite{semver},
+where versions are triples $[x, y, z]$, the interface for a package only depends on
+$[x, y]$, and interfaces with the same $x$ are required to be upwardly compatible.
+For example an interface at version [1,0] might consist of a sized type $\kw{T}$
+together with an element $\kw{z}\in\kw{T}$:
 \begin{code}
-%WORDSIZE =
-  /WORDSIZE/ &/in/ /word/ \\
-%word =
-  /word/ &/in/ /FSet/(/WORDSIZE/)
+/A[1,0]/ = &
+  /prodp/ /size/ /in/ /word/ /cdot/
+  /prodp/ /T/ /in/ /FSet/(/size/) \\&\indent /cdot/ 
+  /prodp/ /z/ /in/ /T/ /cdot/
+  /unit/
 \end{code}
-We can break this cycle by expanding out the definition of $\kw{bits}$:
+One possible implementation sets $\kw{T}$ to be $\kw{unit}$:
 \begin{code}
-%WORDSIZE-expanded =
-  /WORDSIZE/ &/in/ (/bool/ /times/ /bool/ /times/ /bool/ /times/ /bool/ \\&\indent
-                      /times/ /bool/ /times/ /bool/ /times/ /bool/ /times/ /bool/ /times/ /unit/) \\
-             &/in/ (/FSet/ ([ /0/ , /0/ , /0/ , /1/ ])) \\
-%four =
-  ([ /0/ , /0/ , /0/ , /1/ ]) &/in/ (/bool/ /times/ /bool/ /times/ /bool/ /times/ /bool/ /times/ /unit/) \\
-             &/in/ /FSet/ ([ /0/ , /0/ , /1/ ]) \\           
-%three =
-  ([ /0/ , /0/ , /1/ ]) &/in/ (/bool/ /times/ /bool/ /times/ /bool/ /times/ /unit/) \\
-             &/in/ /FSet/ ([ /1/ , /1/ ]) \\           
-%two =
-  ([ /0/ , /1/ ]) &/in/ (/bool/ /times/ /bool/ /times/ /unit/) \\
-             &/in/ /FSet/ ([ /0/ , /1/ ])
+/a[1,0,1]/ =
+  ( /zerop/
+  , /unitp/
+  , /epsilon/
+  , /epsilon/
+  )
 \end{code}
-The $\kw{bits}$ type is not primitive, since it can be defined
-by induction:
+The next version might set $\kw{T}$ to be $\kw{bool}$:
 \begin{code}
-/mybits/ = /indn/(/FSet/) (/unitp/) (/lambda/ n /cdot/ /lambda/ A /cdot/ (/bool/ /times/ A))
+/a[1,0,2]/ =
+  ( /onep/
+  , /boolp/
+  , /false/
+  , /epsilon/
+  )
 \end{code}
-For example:
+Bumping the minor version requires an implementation with a compatible interface,
+for simplicity we will take this to be an extension. For example the next major
+release might require $\kw{T}$ to support a successor function:
 \begin{code}
-%WORDSIZE-mybits =
-  /WORDSIZE/ &/in/ /mybits/(/WORDSIZE/)
+/A[1,1]/ = &
+  /prodp/ /size/ /in/ /word/ /cdot/
+  /prodp/ /T/ /in/ /FSet/(/size/) \\&\indent /cdot/
+  /prodp/ /z/ /in/ /T/ /cdot/
+  /prodp/ /s/ /in/ (/T/ /rightarrow/ /T/) /cdot/
+  /unit/
 \end{code}
-At this point, we have seen all of the gadgets in this simple finite
-dependent type system. The types are summarized in
-Figure~\ref{built-in-types}.
+For instance, this can be implemented by setting $\kw{T}$ to be $\kw{word}$:
+\begin{code}
+/tsucc/ = & (/lambda/ x /cdot/ /truncate/(/one/ + x)) \\
+/a[1,1,0]/ = &
+  ( /WORDSIZE/
+  , /word/
+  , /zerop/
+  , /tsucc/
+  , /epsilon/
+  )
+\end{code}
+Implementations may be dependent, for example $\kw{B}$ might depend on $\kw{A}[1,y]$ for any $y\ge1$:
+\begin{code}
+/B[1,0]/(/size/ , /A/ , /z/ , /s/ , /ldots/) =
+  /prodp/ /ss/ /in/ (/A/ /rightarrow/ /A/) /cdot/
+  /unit/
+\end{code}
+with matching implementation:
+\begin{code}
+/b[1,0,1]/(/size/ , /A/ , /z/ , /s/ , /ldots/) =
+  ( (/lambda/ x /cdot/ /s/(/s/(x)))
+  , /epsilon/
+  )
+\end{code}
+In summary, an interface $A[x,y]$ is interpreted as family of types
+where $A[x,1+y]$ is an extension of $A[x,y]$, and an
+implementation $a[x,y,z]$ is interpreted as a family of values
+where $a[x, y, z] \in A[x, y]$.
+A dependent interface (resp.~implementation) is interpreted as
+a dependent function type (resp.~dependent function).
+
+\subsection{Finite dependencies}
+
+One feature that all of these examples have in common is that they do not
+require any infinite data. Existing dependent type systems encourage the
+use of infinite types such such as lists or trees.
+The prototypical infinite types are $\mathbb{N}$ (the type of natural
+numbers) and $\kw{Set}$ (the type of types). This is a mismatch with systems
+programs, where types are often \emph{sized} (for example in Rust,
+types are \texttt{Sized}~\cite[\S3.31]{rust-book} by default).
+In particular, systems programs are usually parameterized by the
+architectures word size, and assume that data fits into memory
+(for example that arrays are indexed by a word, not by a natural number).
+
+In this position paper, we encourage the exploration of programming
+languages in which finite types are the norm. For example, a simple
+language of finite types is given in Figure~\ref{built-in-types}.
+This system is not fully developed (\emph{hey, this is a position paper!})
+in particular its use of $\kw{FSet}(k) \in \kw{FSet}(k+1)$
+is possibly unsound, and its encoding in Agda uses $\kw{Set} \in \kw{Set}$
+which is dangerous.
+
+This paper is written in Literate Agda, and all display math has
+been typechecked with Agda~v2.4.2.5. The source is available~\cite{self}.
 
 \section{Design space}
 
@@ -352,7 +315,7 @@ There is a large design space for finite dependent types, and types for systems 
 \subsection{Type of types}
 
 What should the size of $\kw{FSet}$ be?
-In \S\ref{hacking} the type is $\kw{FSet}(n) \in \kw{FSet}(\kw{one} + n)$
+In Figure~\ref{built-in-types} the type is $\kw{FSet}(n) \in \kw{FSet}(\kw{one} + n)$
 which models a theory in which types are identified with their cardinality,
 since the cardinality of $\{ 0,\ldots,n \}$ is $n+1$, and if $n$ is a $k$-bit number
 then $n+1$ is a $k$-bit number.
@@ -401,7 +364,7 @@ the same as $\kw{FSet}([\kw{1},\kw{0}])$.
 
 \subsection{Serialization}
 
-In the theory in \S\ref{hacking}, there is an implicit isomorphism
+In the theory in Figure~\ref{built-in-types}, there is an implicit isomorphism
 between elements of $\kw{FSet}(n)$ and subsets of $\kw{bool}^n$. The isomorphism defines
 a (de)serializer, for example serializing pairs by serializing each projection,
 and serializing functions by serializing the graph of the function.
@@ -414,13 +377,6 @@ relevant data in the theory.
 The last choice means that every type comes equipped with a serializer,
 which in turn means that parametricity~\cite{parametricity} does not
 hold, and so there are no theorems for free~cite{tff} any more.
-
-\subsection{Induction}
-
-In the theory in \S\ref{hacking}, induction over binary
-numbers is taken as a primitive. It would be nice if this could be
-encoded by induction over the booleans and dependent pairs,
-with induction over numbers relegated to the metatheory.
 
 \subsection{Theory of binary arithmetic}
 
@@ -467,14 +423,14 @@ encourage the use of finite types.
 The definition of tagged union in terms of dependent pairs:
 \begin{code}
 (A /oplus/ B) = & (/prod/ b /in/ /bool/ /cdot/ /IF/ b /THEN/ A /ELSE/ B) \\
-/inl/(x) = & (/1/ , x) \\
-/inr/(y) = & (/0/ , y)
+/inl/(x) = & (/true/ , x) \\
+/inr/(y) = & (/false/ , y)
 \end{code}
 The definition of options in terms of tagged unions:
 \begin{code}
 (A /?/) = & (A /oplus/ /bits/(/sizeof/(A))) \\
 /some/(x) = & /inl/(x) \\
-/none/(A) = & /inr/(/zero/[ /sizeof/(A) ])
+/none/(A) = & /inr/(/zerop/)
 \end{code}
 Derived typing rules:
 \begin{code}

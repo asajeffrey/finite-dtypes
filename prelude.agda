@@ -20,7 +20,7 @@ infixl 1 AND
 data ⊥ : Set where
 
 record ⊤ : Set where
-  constructor /zero/
+  constructor /epsilon/
 
 record Π (A : Set) (B : A -> Set) : Set where
   constructor _,_
@@ -33,16 +33,16 @@ _×_ : Set → Set → Set
 (A × B) = Π x ∈ A ∙ B
 
 data 𝔹 : Set where
-  /0/ : 𝔹
-  /1/ : 𝔹
+  /false/ : 𝔹
+  /true/ : 𝔹
 
-if_then_else_ : ∀ {A : 𝔹 -> Set} -> (b : 𝔹) -> A(/1/) -> A(/0/) -> A(b)
-if /0/ then T else F = F
-if /1/ then T else F = T
+if_then_else_ : ∀ {A : 𝔹 -> Set} -> (b : 𝔹) -> A(/true/) -> A(/false/) -> A(b)
+if /false/ then T else F = F
+if /true/ then T else F = T
 
 ⟨_⟩ : 𝔹 → Set
-⟨ /0/ ⟩ = ⊥
-⟨ /1/ ⟩ = ⊤
+⟨ /false/ ⟩ = ⊥
+⟨ /true/ ⟩ = ⊤
 
 data ℕ : Set where
   zero : ℕ
@@ -61,93 +61,97 @@ _↑_ : Set → ℕ → Set
 (A ↑ zero) = ⊤
 (A ↑ (succ n)) = (A × (A ↑ n))
 
-/IF/_/THEN/_/ELSE/_ : forall {A : 𝔹 -> Set} -> (b : 𝔹) -> A(/1/) -> A(/0/) -> A(b)
-/IF/ /0/ /THEN/ T /ELSE/ F = F
-/IF/ /1/ /THEN/ T /ELSE/ F = T
+/IF/_/THEN/_/ELSE/_ : forall {A : 𝔹 -> Set} -> (b : 𝔹) -> A(/true/) -> A(/false/) -> A(b)
+/IF/ /false/ /THEN/ T /ELSE/ F = F
+/IF/ /true/ /THEN/ T /ELSE/ F = T
 
 -- Binary arithmetic
 
 indn : ∀ {k} {A : Set} → A → (A → A) → (𝔹 ↑ k) → A
 indn {zero}   e f n = e
-indn {succ k} e f (/0/ , n) = indn e (λ x → f (f x)) n
-indn {succ k} e f (/1/ , n) = f (indn e (λ x → f (f x)) n)
+indn {succ k} e f (/false/ , n) = indn e (λ x → f (f x)) n
+indn {succ k} e f (/true/ , n) = f (indn e (λ x → f (f x)) n)
 
 unary : ∀ {k} → (𝔹 ↑ k) → ℕ
 unary = indn zero succ
 
 /zerop/ : ∀ {k} → (𝔹 ↑ k)
-/zerop/ {zero}   = /zero/
-/zerop/ {succ n} = (/0/ , /zerop/)
+/zerop/ {zero}   = /epsilon/
+/zerop/ {succ n} = (/false/ , /zerop/)
 
-/zero/[_] :  ∀ {k} → (n : 𝔹 ↑ k) → (𝔹 ↑ unary n)
-/zero/[ n ] = /zerop/
+/epsilon/[_] :  ∀ {k} → (n : 𝔹 ↑ k) → (𝔹 ↑ unary n)
+/epsilon/[ n ] = /zerop/
 
 /onep/ : ∀ {k} → (𝔹 ↑ succ k)
-/onep/ = (/1/ , /zerop/)
+/onep/ = (/true/ , /zerop/)
 
 /one/ : (𝔹 ↑ one)
 /one/ = /onep/
+
+/max/ : ∀ {k} → (𝔹 ↑ k)
+/max/ {zero}   = /epsilon/
+/max/ {succ n} = (/true/ , /max/)
 
 /IMPOSSIBLE/ : {A : Set} → {{p : ⊥}} → A
 /IMPOSSIBLE/ {A} {{()}}
 
 /not/ : 𝔹 → 𝔹
-/not/ /0/ = /1/
-/not/ /1/ = /0/
+/not/ /false/ = /true/
+/not/ /true/ = /false/
 
 /extend/ : ∀ {k} → (𝔹 ↑ k) → (𝔹 ↑ succ k)
-/extend/ {zero}   _       = (/0/ , /zero/)
+/extend/ {zero}   _       = (/false/ , /epsilon/)
 /extend/ {succ k} (b , n) = (b , /extend/ n)
 
 _/land/_ : 𝔹 → 𝔹 → 𝔹
-(/0/ /land/ b) = /0/
-(/1/ /land/ b) = b
+(/false/ /land/ b) = /false/
+(/true/ /land/ b) = b
 
 _/lor/_ : 𝔹 → 𝔹 → 𝔹
-(/0/ /lor/ b) = b
-(/1/ /lor/ b) = /1/
+(/false/ /lor/ b) = b
+(/true/ /lor/ b) = /true/
 
 /neg/ : 𝔹 → 𝔹
-/neg/ /0/ = /1/
-/neg/ /1/ = /0/
+/neg/ /false/ = /true/
+/neg/ /true/ = /false/
 
 _/xor/_ : 𝔹 → 𝔹 → 𝔹
-(/0/ /xor/ b) = b
-(/1/ /xor/ b) = /neg/ b
+(/false/ /xor/ b) = b
+(/true/ /xor/ b) = /neg/ b
 
 /carry/ : 𝔹 → 𝔹 → 𝔹 → 𝔹
-/carry/ /0/ a b = a /land/ b
-/carry/ /1/ a b = a /lor/ b
+/carry/ /false/ a b = a /land/ b
+/carry/ /true/ a b = a /lor/ b
 
 addclen : ∀ {j k} → 𝔹 → (𝔹 ↑ j) → (𝔹 ↑ k) → ℕ
-addclen {zero} {k}      /0/ m n = k
-addclen {zero} {zero} /1/ m n = one
-addclen {zero} {succ k} /1/ m (b , n) = succ (addclen b m n)
-addclen {succ j} {zero}   /0/ m n = succ j
-addclen {succ j} {zero}   /1/ (a , m) n = succ (addclen a m n)
+addclen {zero} {k}      /false/ m n = k
+addclen {zero} {zero} /true/ m n = one
+addclen {zero} {succ k} /true/ m (b , n) = succ (addclen b m n)
+addclen {succ j} {zero}   /false/ m n = succ j
+addclen {succ j} {zero}   /true/ (a , m) n = succ (addclen a m n)
 addclen {succ j} {succ k} c   (a , m) (b , n) = succ (addclen (/carry/ c a b) m n)
 
 addlen : ∀ {j k} → (𝔹 ↑ j) → (𝔹 ↑ k) → ℕ
-addlen = addclen /0/
+addlen = addclen /false/
 
 /addc/ : ∀ {j k} c → (m : 𝔹 ↑ j) → (n : 𝔹 ↑ k) → (𝔹 ↑ addclen c m n)
-/addc/ {zero}   {k}      /0/ m n = n
-/addc/ {zero} {zero} /1/ m n = /one/
-/addc/ {zero} {succ k} /1/ m (b , n) = (/not/ b , /addc/ b m n)
-/addc/ {succ j} {zero}   /0/ (a , m) n = (a , m)
-/addc/ {succ j} {zero}   /1/ (a , m) n = (/not/ a , /addc/ a m n)
+/addc/ {zero}   {k}      /false/ m n = n
+/addc/ {zero} {zero} /true/ m n = /one/
+/addc/ {zero} {succ k} /true/ m (b , n) = (/not/ b , /addc/ b m n)
+/addc/ {succ j} {zero}   /false/ (a , m) n = (a , m)
+/addc/ {succ j} {zero}   /true/ (a , m) n = (/not/ a , /addc/ a m n)
 /addc/ {succ j} {succ k} c (a , m) (b , n) = ((c /xor/ a /xor/ b) , (/addc/ (/carry/ c a b) m n))
 
 _+_ : ∀ {j k} → (m : 𝔹 ↑ j) → (n : 𝔹 ↑ k) → (𝔹 ↑ addlen m n)
-_+_ = /addc/ /0/
+_+_ = /addc/ /false/
 
-/succ/ : ∀ {k} → (n : 𝔹 ↑ k) → (𝔹 ↑ addclen /1/ /zero/ n)
-/succ/ = /addc/ /1/ /zero/
+/succ/ : ∀ {k} → (n : 𝔹 ↑ k) → (𝔹 ↑ addclen /true/ /epsilon/ n)
+/succ/ = /addc/ /true/ /epsilon/
 
 dindn : (A : ∀ {k} → (𝔹 ↑ k) → Set) → (∀ {k} → A(/zerop/ {k})) → (∀ {k} (n : 𝔹 ↑ k) → A(n) → A(/succ/(n))) → ∀ {k} → (n : 𝔹 ↑ k) → A(n)
 dindn A e f {zero} n = e
-dindn A e f {succ k} (/0/ , n) = dindn (λ {j} m → A (/0/ , m)) e (λ {j} m x → f (/1/ , m) (f (/0/ , m) x)) n
-dindn A e f {succ k} (/1/ , n) = f (/0/ , n) (dindn (λ {j} m → A (/0/ , m)) e (λ {j} m x → f (/1/ , m) (f (/0/ , m) x)) n)
+dindn A e f {succ k} (/false/ , n) = dindn (λ {j} m → A (/false/ , m)) e (λ {j} m x → f (/true/ , m) (f (/false/ , m) x)) n
+dindn A e f {succ k} (/true/ , n) = f (/false/ , n) (dindn (λ {j} m → A (/false/ , m)) e (λ {j} m x → f (/true/ , m) (f (/false/ , m) x)) n)
 
 _++_ : ∀ {A j k} → (A ↑ j) → (A ↑ k) → (A ↑ (j +n k))
 _++_ {A} {zero}   xs       ys = ys
@@ -156,15 +160,10 @@ _++_ {A} {succ j} (x , xs) ys = (x , xs ++ ys)
 _/ll/_ : ∀ {j k} → (𝔹 ↑ j) → (n : 𝔹 ↑ k) → (𝔹 ↑ (j +n unary n))
 (m /ll/ n) = (m ++ /zerop/)
 
-/truncate?/ : ∀ {k} → (n : 𝔹 ↑ succ(k)) → 𝔹
-/truncate?/ {zero}   (/0/ , _) = /1/
-/truncate?/ {zero}   (/1/ , _) = /0/
-/truncate?/ {succ k} (_   , n) = /truncate?/ n
-
-/truncate/ : ∀ {k} → (n : 𝔹 ↑ succ(k)) → {{p : ⟨ /truncate?/ n ⟩}} → (𝔹 ↑ k)
-/truncate/ {zero}   (/0/ , _) = /zero/
-/truncate/ {zero}   (/1/ , _) = /IMPOSSIBLE/
-/truncate/ {succ k} (b   , n) = (b , /truncate/ n)
+/truncate/ : ∀ {j k} → (𝔹 ↑ j) → (𝔹 ↑ k)
+/truncate/ {j} {zero} n = /epsilon/
+/truncate/ {zero} {succ k} n = /zerop/
+/truncate/ {succ j} {succ k} (a , n) = (a , /truncate/ n)
 
 -- Finite sets
 
@@ -188,23 +187,23 @@ open FSet public
 /nothing/[_] : ∀ {k} (n : 𝔹 ↑ k) → FSet(/zerop/ {unary n})
 /nothing/[ n ] = /nothingp/
 
-/nothing/ : FSet(/zero/)
+/nothing/ : FSet(/epsilon/)
 /nothing/ = /nothingp/
 
-/bool/[_] : ∀ {k} (n : 𝔹 ↑ k) → FSet(/one/ + n)
-/bool/[ n ] = record { Carrier = 𝔹; encodable = HOLE }
+/boolp/ : ∀ {k} → FSet(/onep/ {k})
+/boolp/ = record { Carrier = 𝔹; encodable = HOLE }
 
 /bool/ : FSet(/one/)
-/bool/ = /bool/[ /zero/ ]
+/bool/ = /boolp/
 
 /unitp/ : ∀ {k} → FSet(/zerop/ {k})
 /unitp/ = record { Carrier = ⊤; encodable = HOLE }
 
-/unit/[_] : ∀ {k} (n : 𝔹 ↑ k) → FSet(/zero/[ n ])
+/unit/[_] : ∀ {k} (n : 𝔹 ↑ k) → FSet(/epsilon/[ n ])
 /unit/[ n ] = /unitp/
 
-/unit/ : FSet(/zero/)
-/unit/ = /unit/[ /zero/ ]
+/unit/ : FSet(/epsilon/)
+/unit/ = /unit/[ /epsilon/ ]
 
 /bits/ : ∀ {k} (n : 𝔹 ↑ k) ->  FSet(n)
 /bits/ n = record { Carrier = (𝔹 ↑ unary n); encodable = HOLE }
@@ -234,8 +233,8 @@ syntax lambda (λ x → e) = /lambda/ x /cdot/ e
 /indn/ A e f = dindn (λ n → Carrier(A(n))) e (λ n x → g n (f n x)) where
   g : ∀ {k} → (n : 𝔹 ↑ k) → Carrier(A(/one/ + n)) → Carrier(A(/succ/(n)))
   g {zero}   n         x = x
-  g {succ k} (/0/ , n) x = x
-  g {succ k} (/1/ , n) x = x
+  g {succ k} (/false/ , n) x = x
+  g {succ k} (/true/ , n) x = x
 
 -- Stuff to help with LaTeX layout
 
@@ -255,7 +254,7 @@ AND A F = F
 [_ x = x
 
 _] : ∀ {A} → A → (A ↑ one)
-_] x = (x , /zero/)
+_] x = (x , /epsilon/)
 
 _\\ : forall {A : Set} -> A -> A
 x \\ = x
