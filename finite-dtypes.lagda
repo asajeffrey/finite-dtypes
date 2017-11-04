@@ -225,8 +225,8 @@ size = [ /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /false/ , /
 \end{code}
 \end{comment}
 
-Dependencies are usually versioned, for example by semantic versioning~\cite{semver},
-where versions are triples $[x, y, z]$, the interface for a package only depends on
+Dependencies are usually versioned, for instance Cargo uses semantic versioning~\cite{semver.org}.
+Semantic versions are triples $[x, y, z]$, where the interface for a package only depends on
 $[x, y]$, and interfaces with the same $x$ are required to be upwardly compatible.
 For example an interface at version [1,0] might consist of a sized type $\kw{T}$
 together with an element $\kw{z}\in\kw{T}$:
@@ -253,8 +253,8 @@ The next version might set $\kw{T}$ to be $\kw{bool}$:
   /false/ ,
   /epsilon/ )
 \end{code}
-Bumping the minor version requires an implementation with a compatible interface,
-for simplicity we will take this to be an extension. For example the next major
+Bumping the minor version requires an implementation with a compatible interface.
+For example the next major
 release might require $\kw{T}$ to support a successor function:
 \begin{code}
 /A[1,1]/ = &
@@ -289,11 +289,15 @@ with matching implementation:
   )
 \end{code}
 In summary, an interface $A[x,y]$ is interpreted as family of types
-where $A[x,1+y]$ is an extension of $A[x,y]$, and an
-implementation $a[x,y,z]$ is interpreted as a family of values
-where $a[x, y, z] \in A[x, y]$.
-A dependent interface (resp.~implementation) is interpreted as
-a dependent function type (resp.~dependent function).
+where if $y\le y'$ then $A[x,y] :> A[x,y']$ for an appropriate notion
+of subtyping. Note: handwaving.
+
+There has been much attention paid to dependent types for module
+systems~\cite{???}. In some ways, dependency management is simpler
+because the dependency graph is required to be acyclic, but it
+does make non-trivial use of subtyping. Dependent packages
+are interpreted in the style of Kripke semantics, as functions
+$\forall A[x,y'] <: A[x,y] \cdot B[m,n]$.
 
 \subsection{Finite dependencies}
 
