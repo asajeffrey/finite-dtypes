@@ -290,10 +290,10 @@ of Kripke semantics, as functions
 $\forall A[x,y'] <: A[x,y] \cdot B[m,n]$.
 
 There has been much attention paid to dependent types for module
-systems~\cite{???}. In some ways, dependency management is simpler
+systems~\cite{McQ86, HMM90, Har93}. In some ways, dependency management is simpler
 because the dependency graph is acyclic,
-but it does introduce interface evolution which can be complex,
-for example Rust's~\cite{rfc1105}.
+but it does introduce interface evolution complexity,
+for example Rust's~\cite[\#1105]{rfcs}.
 
 \subsection{Finite dependencies}
 
@@ -305,7 +305,7 @@ for example Rust's~\cite{rfc1105}.
 
 One feature that all of these examples have in common is that they do not
 require any infinite data. Existing dependent type systems encourage the
-use of infinite types such such as lists or trees.
+use of in1finite types such such as lists or trees.
 The prototypical infinite types are $\mathbb{N}$ (the type of natural
 numbers) and $\kw{Set}$ (the type of types). This is a mismatch with systems
 programs, where types are often \emph{sized} (for example in Rust,
@@ -319,8 +319,6 @@ In this language, all types are finite, in particular
 $\kw{FSet}(n) \in \kw{FSet}(\kw{one} + n)$
 (the size is slightly arbitrary, we could have chosen any increasing
 size, for instance $\kw{FSet}(n) \in \kw{FSet}(\kw{one} \ll n)$).
-The theory is similar to that of sized types~\cite{???},
-restricted to $\omega$ rather than reachable ordinals.
 
 The system is based on a theory of binary arithmetic, but even
 that is definable within the language, for example the type
