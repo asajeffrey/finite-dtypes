@@ -10,7 +10,7 @@
 \begin{document}
 
 \title{Finite Dependent Types}
-\subtitle{Fancy Types For Systems Metaprogramming}
+\subtitle{Fancy Types For Systems Metaprogramming And Dependency Management}
 \author{Alan Jeffrey}
 \orcid{0000-0001-6342-0318}
 \affiliation{Mozilla Research}
@@ -391,7 +391,7 @@ More research is needed!
 
 Dependent types are a good fit for some of the more difficult problems
 with programming in the large: metaprogramming and dependency management.
-Howeever, their focus on infinite types such as $\mathbb{N}$ is a mismatch.
+Howeever, their focus on infinite types is a mismatch.
 Systems are finite, and are better served by systems which
 encourage the use of finite types.
 
