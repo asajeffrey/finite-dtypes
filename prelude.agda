@@ -1,7 +1,7 @@
 {-# OPTIONS --type-in-type #-} -- DANGER!
 postulate HOLE : {A : Set} -> A -- MORE DANGER!
 
-infixr 6 _\\
+infixr 6 _\\ _/quad/
 infixr 6 _\\&\indent
 infixl 2 &_
 
@@ -360,6 +360,9 @@ _] x = (x , /epsilon/)
 
 _\\ : forall {A : Set} -> A -> A
 x \\ = x
+
+_/quad/ : forall {A : Set} -> A -> A
+x /quad/ = x
 
 _\\&\indent : forall {A : Set} -> A -> A
 x \\&\indent = x

@@ -99,26 +99,26 @@ $ loc servo/components/script/dom/bindings/codegen/
  Total                   81        26932         3904         2112        20916
 --------------------------------------------------------------------------------
 \end{tinyverb}
-Is there a more principaled approach to code generation?
+Is there a more principled approach to code generation?
 
 \section{Metaprogramming}
 
 Fortunately, metaprogramming is a well-explored area, 
 notably in the Racket~\cite{racket-lang.org} programming
-language's \texttt{\#lang} declarations.
-Much metaprogramming does not provide static guarantees,
-since the type system of the metaprogramming language
+language's \texttt{\#lang} ecosystem.
+Much metaprogramming relies on dynamic checks,
+since the host language's type system
 is not usually expressive enough to encode object
-language types, especially when those types are based on
-data (such as Web IDL specifications).
+language types at compile time.
 
 A notable exception is the use of \emph{dependent types}
 (as implemented in, for example, Coq~\cite{coq}, Agda~\cite{agda}
-or Idris~\cite{idris}). Dependent types have already been proposed
-for low-level programming~\cite{CHAGN07}, generic programming~\cite{AM03}
-and metaprogramming~\cite{Chl10}. Dependent types allow for
+or Idris~\cite{idris})
+which allow
 the compile-time computation of types which depend on data,
-but still provide static guarantees such as memory safety.
+Dependent types have already been proposed
+for low-level programming~\cite{CHAGN07}, generic programming~\cite{AM03}
+and metaprogramming~\cite{Chl10}.
 
 % The Agda types of things defined in this figure.
 \begin{comment}
@@ -150,8 +150,8 @@ _/rightarrow/_ : ∀ {j k} {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} → (A : FSet m) ->
 %FSet = \ k (n : 𝔹 ↑ k) ->
   /FSet/(n) &/in/ /FSet/(/succp/(n))
 \end{code}
-\caption{Type rules for built-in types}
-\label{built-in-types}
+\caption{Type rules for simple finite dependent types}
+\label{simple-types}
 \end{figure}
 
 \subsection{Dependent metaprogramming}
@@ -206,7 +206,6 @@ then the typing of $\kw{Console}$ is internal to the language:
 Chliapala~\cite{Chl10} has shown that dependent metaprogramming
 can give type-safe bindings for first-order languages like
 SQL schemas. Hopefully it scales to higher-order languages like Web~IDL.
-More research is needed!
  
 \subsection{Dependent dependencies}
 
@@ -235,25 +234,22 @@ together with an element $\kw{z}\in\kw{T}$:
   /prodp/ /z/ /in/ /T/ /cdot/
   /unitp/
 \end{code}
-One possible implementation sets $\kw{T}$ to be $\kw{unit}$:
+One implementation sets $\kw{T}$ to be $\kw{unit}$,
+but the next sets $\kw{T}$ to be $\kw{bool}$:
 \begin{code}
 /a[1,0,1]/ = (
   /zerop/ ,
   /unitp/ ,
   /epsilon/ ,
-  /epsilon/ )
-\end{code}
-The next version might set $\kw{T}$ to be $\kw{bool}$:
-\begin{code}
+  /epsilon/ ) /quad/
 /a[1,0,2]/ = (
   /onep/ ,
   /boolp/ ,
   /false/ ,
   /epsilon/ )
 \end{code}
-Bumping the minor version requires an implementation with a compatible interface.
-For example the next major
-release might require $\kw{T}$ to support a successor function:
+Bumping the minor version requires an implementation with a compatible interface,
+for example:
 \begin{code}
 /A[1,1]/ = &
   /prodp/ /size/ /in/ /word/ /cdot/
@@ -262,7 +258,7 @@ release might require $\kw{T}$ to support a successor function:
   /prodp/ /s/ /in/ /reference/(/T/ /rightarrow/ /T/) /cdot/
   /unitp/
 \end{code}
-For instance, this can be implemented by setting $\kw{T}$ to be $\kw{word}$:
+which can be implemented by setting $\kw{T}$ to be $\kw{word}$:
 \begin{code}
 /tsucc/ = & (/fn/ x /cdot/ /truncate/(/one/ + x)) \\
 /a[1,1,0]/ = &
@@ -295,9 +291,9 @@ $\forall A[x,y'] <: A[x,y] \cdot B[m,n]$.
 
 There has been much attention paid to dependent types for module
 systems~\cite{???}. In some ways, dependency management is simpler
-because the dependency graph is required to be acyclic,
+because the dependency graph is acyclic,
 but it does introduce interface evolution which can be complex,
-for example Rust's~\cite{rfc1105}. More research is needed!
+for example Rust's~\cite{rfc1105}.
 
 \subsection{Finite dependencies}
 
@@ -313,12 +309,12 @@ use of infinite types such such as lists or trees.
 The prototypical infinite types are $\mathbb{N}$ (the type of natural
 numbers) and $\kw{Set}$ (the type of types). This is a mismatch with systems
 programs, where types are often \emph{sized} (for example in Rust,
-types are \texttt{Sized}~\cite[\S3.31]{rust-book} by default).
+types are \texttt{Sized} by default~\cite[\S3.31]{rust-book}).
 In particular, systems programs are usually parameterized by
-$kw{WORDSIZE}$, and assume that data fits into memory
+$\kw{WORDSIZE}$, and assume that data fits into memory
 (for example that arrays are indexed by a word, not by a natural number).
 
-A simple language of finite types is given in Figure~\ref{built-in-types}.
+A simple language of finite types is given in Figure~\ref{simple-types}.
 In this language, all types are finite, in particular
 $\kw{FSet}(n) \in \kw{FSet}(\kw{one} + n)$
 (the size is slightly arbitrary, we could have chosen any increasing
