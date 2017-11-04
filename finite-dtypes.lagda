@@ -43,8 +43,7 @@ open import prelude -- POSTULATES LIVE HERE!
 
 Applications such as web browsers often have issues of scale and
 complexity of the code base. For example, the Servo~\cite{servo.org}
-next generation web engine contains more than a quarter of a million
-lines of code (counted with \texttt{loc}~\cite{loc}):
+next generation web engine contains more than 250KLoC:
 \begin{tinyverb}
 $ loc servo/components/
 --------------------------------------------------------------------------------
@@ -57,9 +56,9 @@ $ loc servo/components/
 --------------------------------------------------------------------------------
 \end{tinyverb}
 That is just the Servo codebase itself. Servo also makes use of the
-Cargo~\cite{crates.io} software ecosystem, and has more than two hundred
-transitive dependencies with more than a million lines of Rust code,
-and nine million lines of code in all languages:
+Cargo~\cite{crates.io} software ecosystem, and has over 200
+transitive dependencies with more than a 1MLoC in Rust,
+and 9MLoC in total:
 \begin{tinyverb}
 $ loc servo/.cargo/
 ...
@@ -80,8 +79,7 @@ $ loc servo/target/
 --------------------------------------------------------------------------------
 \end{tinyverb}
 Much of this generated code comes from the \texttt{script} component,
-which generates Rust bindings for the Web~IDL~\cite{webidl}
-interfaces for the HTML JavaScript APIs~\cite{whatwg}:
+which generates Rust bindings from Web~IDL~\cite{webidl}:
 \begin{tinyverb}
 $ loc servo/target/debug/build/script-*/
 ...
@@ -91,7 +89,7 @@ $ loc servo/target/debug/build/script-*/
  Total                  592       800055        66936         9849       723270
 --------------------------------------------------------------------------------
 \end{tinyverb}
-The code generator itself is twenty thousand lines of Python script:
+The code generator itself is 20KLoC in Python:
 \begin{tinyverb}
 $ loc servo/components/script/dom/bindings/codegen/
 ...
@@ -101,8 +99,7 @@ $ loc servo/components/script/dom/bindings/codegen/
  Total                   81        26932         3904         2112        20916
 --------------------------------------------------------------------------------
 \end{tinyverb}
-There should be a better way to do metaprogramming than Python scripts
-writing source files!
+Is there a more principaled approach to code generation?
 
 \section{Metaprogramming}
 
