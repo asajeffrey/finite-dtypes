@@ -99,7 +99,7 @@ $ loc servo/components/script/dom/bindings/codegen/
  Total                   81        26932         3904         2112        20916
 --------------------------------------------------------------------------------
 \end{tinyverb}
-Is there a more principled approach to code generation?
+There should be a more principled approach to dependency management and metaprogramming.
 
 \section{Metaprogramming}
 
@@ -150,7 +150,8 @@ _/rightarrow/_ : ∀ {j k} {m : 𝔹 ↑ j} {n : 𝔹 ↑ k} → (A : FSet m) ->
 %FSet = \ k (n : 𝔹 ↑ k) ->
   /FSet/(n) &/in/ /FSet/(/succp/(n))
 \end{code}
-\caption{Type rules for simple finite dependent types}
+\caption{Type rules for simple finite dependent types,
+  where~$\kw{FSet}(n)$ is the type of types with at most $2^n$ elements}
 \label{simple-types}
 \end{figure}
 
@@ -181,7 +182,7 @@ languages such as Web~IDL. For example:
 \begin{verbatim}
   interface Console { log(DOMString moduleURL); };
 \end{verbatim}
-might be interpreted as:
+might be interpreted (using types from Figure~\ref{simple-types}):
 \begin{code}
 /Console/ = &
   /fn/ /ssize/ /in/ /word/ /cdot/
@@ -199,9 +200,9 @@ to the system, and can be typed. If we define:
 then the typing of $\kw{Console}$ is internal to the language:
 \begin{code}
 %Console =
-  /Console/(s)(S) &/in/ /FSet/(/CSize/)
-  &/WHEN/ S /in/ /FSet/(s)
-  /AND/ s /in/ /word/
+  /Console/(n)(S) &/in/ /FSet/(/CSize/)
+  &/WHEN/ S /in/ /FSet/(n)
+  /AND/ n /in/ /word/
 \end{code}
 Chlipala~\cite{Chl10} has shown that dependent metaprogramming
 can give type-safe bindings for first-order languages like
@@ -291,7 +292,7 @@ $\forall A[x,y'] <: A[x,y] \cdot B[m,n]$.
 
 There has been much attention paid to dependent types for module
 systems~\cite{McQ86, HMM90, Har93}. In some ways, dependency management is simpler
-because the dependency graph is acyclic,
+because dependencies are acyclic,
 but it does introduce interface evolution complexity,
 for example Rust's~\cite[\#1105]{rfcs}.
 
@@ -305,7 +306,7 @@ for example Rust's~\cite[\#1105]{rfcs}.
 
 One feature that all of these examples have in common is that they do not
 require any infinite data. Existing dependent type systems encourage the
-use of in1finite types such such as lists or trees.
+use of infinite types such such as lists or trees.
 The prototypical infinite types are $\mathbb{N}$ (the type of natural
 numbers) and $\kw{Set}$ (the type of types). This is a mismatch with systems
 programs, where types are often \emph{sized} (for example in Rust,
@@ -356,27 +357,25 @@ Some issues finite types raise include:
   which may give problems with, for example, codings of indexed types.
 
 \item[Theory of binary arithmetic:]
-  The theory of finite types is very dependent on the theory of natural
-  numbers, and it is very easy to end up type checking dependent on
-  properties such as associativity and commutativity of addition.
+  The theory of finite types is very dependent on the theory of bitstrings,
+  and it is very easy to end up type checking modulo
+  properties such as associativity and commutativity of $+$.
   Such theorems could be handled by an SMT solver, but this has its own
-  issues, such as the interaction between the SMT solver and type
-  inference, and the complexity of an SMT solver being visible to
-  the end programmer.
+  issues, such as type inference and complexity.
 
-\item[Pointers]
+\item[Pointers:]
   In systems programming languages such as Rust, cyclic data structures
   are mediated by pointers. In a finite type system, we could allow a
   type of pointers $\&(A)$ where $\&(A) \in \kw{FSet}(\kw{WORDSIZE})$
   when $A \in \kw{FSet}(n)$.
   Pointer creation can fail in low-memory situations, so should be
   encapsulated in a monad, similar to Haskell's $\kw{ST}$ monad.
-  Care needs to be taken about pointers to data which includes sets,
-  in particular $\&(\kw{FSet}(\kw{WORDSIZE})) \in
-  \kw{FSet}(\kw{WORDSIZE})$ is very close to introducing unsoundness.
+
+\item[Error messages:]
+  Type systems should not just reject incorrect programs,
+  they should provide useful hits about fixing them.
 
 \end{description}
-More research is needed!
 
 \section{Conclusions}
 
