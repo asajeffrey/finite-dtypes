@@ -3,6 +3,8 @@
 *.bbl
 *.blg
 *.dvi
+*.fdb*
+*.fls
 *.log
 *.out
 *~

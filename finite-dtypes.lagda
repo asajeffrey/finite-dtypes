@@ -315,67 +315,66 @@ In particular, systems programs are usually parameterized by
 $\kw{WORDSIZE}$, and assume that data fits into memory
 (for example that arrays are indexed by a word, not by a natural number).
 
-A simple language of finite types is given in Figure~\ref{simple-types}.
-In this language, all types are finite, in particular
-$\kw{FSet}(n) \in \kw{FSet}(\kw{one} + n)$
-(the size is slightly arbitrary, we could have chosen any increasing
-size, for instance $\kw{FSet}(n) \in \kw{FSet}(\kw{one} \ll n)$).
+An overview of approaches to finite sets in dependent type theory is
+given in~\cite{FGGvW18}, which defines
+a type constructor $\mathcal{K}(A)$ (the
+Kuratowski-finite subsets of $A$), and defines the finite
+types to be a type $A$ together with an $X \in \mathcal{K}(A)$
+such that every $x:A$ has $x \in X$.
+Type constructors such as dependent functions and pairs, preserve
+finiteness, but the type of finite types is not itself finite.
 
-The system is based on a theory of binary arithmetic, but even
-that is definable within the language, for example the type
-of bitstrings is definable by induction:
+In Figure~\ref{simple-types}, we posit a type system with
+a type-of-types $\kw{FSet}(n)$,
+containing types with at most $2^n$ elements.
+In this system, all types are finite, in particular $\kw{FSet}(n)
+\in \kw{FSet}(\kw{one} + n)$.  We expect that this explicit bound on
+the size of $\kw{FSet}(n)$ cannot be expressed internally inside an
+off-the-shelf dependent type theory, but we conjecture that an extension
+like this is consistent.
+
+This system is based on a theory of binary arithmetic, but even that is
+definable within the language, in the presence of an appropriate
+induction principal for binary arithmetic. For example the type of
+bitstrings is definable by induction:
 \begin{code}
-/binary/ = /indn/
+/binary/ = & /indn/
            (/FSet/)
            (/unitp/)
-           (/fn/ n /cdot/ /fn/ A /cdot/ (/bool/ /times/ A))
-\end{code}
-For example:
-\begin{code}
+           (/fn/ n /cdot/ /fn/ A /cdot/ (/bool/ /times/ A)) \\
 %WORDSIZE =
   /WORDSIZE/ &/in/ /binary/(/WORDSIZE/)
 \end{code}
-Some issues finite types raise include:
-\begin{description}
+As the type for $\kw{WORDSIZE}$ suggests, this is all spookily
+cyclic. In particular, binary numbers are parameterized by their
+bitlength, which is itself a binary number. A bootstrapping induction principal is
+needed, similar to Agda universe
+polymorphism~\cite{agda}. We hypothesize that irrelevant
+natural numbers might suffice.
 
-\item[Induction:]
-  As the type for $\kw{WORDSIZE}$ suggests,
-  this is all spookily cyclic. In particular, binary numbers
-  are parameterized by their bitlength, which is itself
-  a binary number. An induction principal is needed,
-  even if it is extra-logical, similar to
-  Agda's universe polymorphism~\cite{agda}. We hypothesize
-  that a theory of irrelevant natural numbers might suffice.
+Potential advantages of explicitly finite dependent types
+include:
+\begin{itemize}
 
-\item[Path types:] Dependent type systems usually come with an identity type $a
-  \equiv_A b$ where $a : A$ and $b : A$.
-  If identity types are interpreted as paths as in Homotopy Type Theory~\cite{hott},
-  then the size of $A \equiv_{\kw{FSet}(n)} B$ is at most the size of $A \rightarrow B$,
-  which would suggest considering $(a \equiv_A b) \in \kw{FSet}(n \ll n)$
-  when $A \in \kw{FSet}(n)$.
-  This makes the type of identities over $A$ much larger than the type of $A$,
-  which may give problems with, for example, codings of indexed types.
+\item A better fit with systems programming languages such as Rust,
+  where sized types are the default.
 
-\item[Theory of binary arithmetic:]
-  The theory of finite types is very dependent on the theory of bitstrings,
-  and it is very easy to end up type checking modulo
-  properties such as associativity and commutativity of $+$.
-  Such theorems could be handled by an SMT solver, but this has its own
-  issues, such as type inference and complexity.
+\item Domain specific techniques for arithmetic can better support
+  type inference.
 
-\item[Pointers:]
-  In systems programming languages such as Rust, cyclic data structures
-  are mediated by pointers. In a finite type system, we could allow a
-  type of pointers $\&(A)$ where $\&(A) \in \kw{FSet}(\kw{WORDSIZE})$
-  when $A \in \kw{FSet}(n)$.
-  Pointer creation can fail in low-memory situations, so should be
-  encapsulated in a monad, similar to Haskell's $\kw{ST}$ monad.
+\item Simpler induction schemes, such as over the irrelevant naturals,
+  similar to the use of sized types in taming coinduction~\cite{AP16},
+  but without the use of ordinals.
 
-\item[Error messages:]
-  Type systems should not just reject incorrect programs,
-  they should provide useful hits about fixing them.
-
-\end{description}
+\end{itemize}
+Dependent type systems usually come with an identity type $a \equiv_A
+b$ where $a : A$ and $b : A$.  If identity types are interpreted as
+paths as in Homotopy Type Theory~\cite{hott}, then the size of $A
+\equiv_{\kw{FSet}(n)} B$ is at most the size of $A \rightarrow B$,
+which would suggest considering $(a \equiv_A b) \in \kw{FSet}(n \ll
+n)$ when $A \in \kw{FSet}(n)$.  This makes the type of identities over
+$A$ much larger than the type of $A$, which may give problems with,
+for example, codings of indexed types.
 
 \section{Conclusions}
 
